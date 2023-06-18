@@ -18,5 +18,6 @@ public class camera_moving : MonoBehaviour
             Vector3 direction = touch - Camera.main.ScreenToWorldPoint(Input.mousePosition); 
             Camera.main.transform.position += direction; 
         } 
+        Camera.main.orthographicSize -= Input.mouseScrollDelta.y;
     } 
 }
