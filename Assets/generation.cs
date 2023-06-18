@@ -9,6 +9,13 @@ using UnityEngine.Rendering;
 
 public class generation : MonoBehaviour
 {
+    private static Color DeepColor = new Color(68 / 255f, 139  / 255f, 237  / 255f, 1);
+    private static Color ShallowColor = new Color(93  / 255f, 180  / 255f, 246  / 255f, 1);
+    private static Color SandColor = new Color(232  / 255f, 228  / 255f, 167  / 255f, 1);
+    private static Color GrassColor = new Color(129  / 255f, 179  / 255f, 96  / 255f, 1);
+    private static Color ForestColor = new Color(102 / 255f, 142 / 255f, 87 / 255f, 1);
+    private static Color RockColor = new Color(99 / 255f, 110  / 255f, 114  / 255f, 1);
+    private static Color SnowColor = new Color(1, 1, 1, 1);
 
     Tilemap colorMap = null;
     public float[,] noiseMap= null;
@@ -37,10 +44,20 @@ public class generation : MonoBehaviour
         {
             for (int y = 0; y < mapHeight; y++)
             {
-                if (noiseMap[x, y] < 0.4f)
-                    SetTileColour(Color.white, new Vector3Int(x, y, 0));
+                if (noiseMap[x, y] > 0.8f)
+                    SetTileColour(RockColor, new Vector3Int(x, y, 0));
+                else if(noiseMap[x, y] > 0.6f)
+                    SetTileColour(ForestColor, new Vector3Int(x, y, 0));
+                else if(noiseMap[x, y] > 0.4f)
+                    SetTileColour(GrassColor, new Vector3Int(x, y, 0));
+                else if (noiseMap[x, y] > 0.3f)
+                    SetTileColour(SandColor, new Vector3Int(x, y, 0));
+                else if (noiseMap[x, y] > 0.2f)
+                    SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                else if (noiseMap[x, y] > 0.1f)
+                    SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
                 else
-                    SetTileColour(Color.blue, new Vector3Int(x, y, 0));
+                    SetTileColour(DeepColor, new Vector3Int(x, y, 0));
             }
         }
     }
