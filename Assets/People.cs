@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class People : MonoBehaviour
 {
-    // Start is called before the first frame update
+    // Òÿזוכמ
     void Start()
     {
         
