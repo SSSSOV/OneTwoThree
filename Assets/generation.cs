@@ -7,15 +7,53 @@ using UnityEngine.Sprites;
 using AccidentalNoise;
 using UnityEngine.Rendering;
 
+enum terrain
+{
+    None,
+    DeepOcean,
+    ShallowWater,
+    Plain,
+    Hills,
+    Mountain,
+}
+
+enum biome
+{
+    None,
+    DeepOcean,
+    Beach,
+    Desert,
+    Desert_hills,
+    Grassland,
+    Grassland_hills,
+    Forest,
+    Mountains,
+}
+class gameTile
+{
+    public terrain terrainType { get; set; }
+    public biome biomeType { get; set; }
+    public Sprite sprite { get; set; }
+
+    public gameTile()
+    {
+        //terrainType = new terrain();
+        terrainType = terrain.None;
+        //biomeType = new biome();
+        biomeType = biome.None;
+    }
+}
+
 public class generation : MonoBehaviour
 {
     private static Color DeepColor = new Color(68 / 255f, 139  / 255f, 237  / 255f, 1);
     private static Color ShallowColor = new Color(93  / 255f, 180  / 255f, 246  / 255f, 1);
     private static Color SandColor = new Color(232  / 255f, 228  / 255f, 167  / 255f, 1);
     private static Color GrassColor = new Color(129  / 255f, 179  / 255f, 96  / 255f, 1);
-    private static Color ForestColor = new Color(102 / 255f, 142 / 255f, 87 / 255f, 1);
-    private static Color RockColor = new Color(99 / 255f, 110  / 255f, 114  / 255f, 1);
+    private static Color HillsColor = new Color(102 / 255f, 142 / 255f, 87 / 255f, 1);
+    private static Color MountainColor = new Color(99 / 255f, 110  / 255f, 114  / 255f, 1);
     private static Color SnowColor = new Color(1, 1, 1, 1);
+    private gameTile[,] gameMap;
 
     Tilemap colorMap = null;
     public float[,] noiseMap= null;
@@ -31,37 +69,116 @@ public class generation : MonoBehaviour
     Sprite square = null;
     
     Fractal module= null;
-    
-    
+
+
     // Start is called before the first frame update
     void Start()
     {
         colorMap = GetComponent<Tilemap>();
         Initialize();
         generateNoiseMap();
+        gameMap = new gameTile[mapHeight, mapWidth];
 
+        //Terrain types
         for (int x = 0; x < mapWidth; x++)
         {
             for (int y = 0; y < mapHeight; y++)
             {
+                gameMap[x, y] = new gameTile();
                 if (noiseMap[x, y] > 0.8f)
-                    SetTileColour(RockColor, new Vector3Int(x, y, 0));
-                else if(noiseMap[x, y] > 0.6f)
-                    SetTileColour(ForestColor, new Vector3Int(x, y, 0));
-                else if(noiseMap[x, y] > 0.4f)
-                    SetTileColour(GrassColor, new Vector3Int(x, y, 0));
-                else if (noiseMap[x, y] > 0.3f)
-                    SetTileColour(SandColor, new Vector3Int(x, y, 0));
-                else if (noiseMap[x, y] > 0.2f)
-                    SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                {
+                    gameMap[x, y].terrainType = terrain.Mountain;
+                }
+                else if (noiseMap[x, y] > 0.6f)
+                {
+                    gameMap[x, y].terrainType = terrain.Hills;
+                }
+                else if (noiseMap[x, y] > 0.4f)
+                {
+                    gameMap[x, y].terrainType = terrain.Plain;
+                }
                 else if (noiseMap[x, y] > 0.1f)
-                    SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                {
+                    gameMap[x, y].terrainType = terrain.ShallowWater;
+                }
                 else
+                {
+                    gameMap[x, y].terrainType = terrain.DeepOcean;
+                }
+            }
+        }
+        
+        //Biomes
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                if (gameMap[x, y].terrainType == terrain.DeepOcean)
+                {
+                    gameMap[x, y].biomeType = biome.DeepOcean;
+                }
+                if (gameMap[x, y].terrainType == terrain.ShallowWater)
+                {
+                    gameMap[x, y].biomeType = biome.Beach;
+                    spreadBiome(x + 1, y, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
+                    spreadBiome(x - 1, y, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
+                    spreadBiome(x, y + 1, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
+                    spreadBiome(x, y - 1, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
+                }
+                if (gameMap[x, y].terrainType == terrain.Plain)
+                {
+                    gameMap[x, y].biomeType = biome.Grassland;
+                }
+                if (gameMap[x, y].terrainType == terrain.Hills)
+                {
+                    gameMap[x, y].biomeType = biome.Grassland_hills;
+                }
+                if (gameMap[x, y].terrainType == terrain.Mountain)
+                {
+                    gameMap[x, y].biomeType = biome.Mountains;
+                }
+
+            }
+        }
+
+        //Colour for tilemap
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                if (gameMap[x, y].biomeType == biome.DeepOcean)
+                {
                     SetTileColour(DeepColor, new Vector3Int(x, y, 0));
+                }
+                if (gameMap[x, y].terrainType == terrain.ShallowWater)
+                {
+                    SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                }
+                if (gameMap[x, y].terrainType == terrain.Plain)
+                {
+                    if (gameMap[x, y].biomeType == biome.Beach)
+                    {
+                        SetTileColour(SandColor, new Vector3Int(x, y, 0));
+                    }
+                    if (gameMap[x, y].biomeType == biome.Grassland)
+                    {
+                        SetTileColour(GrassColor, new Vector3Int(x, y, 0));
+                    }
+                }
+                if (gameMap[x, y].terrainType == terrain.Hills)
+                {
+                    if (gameMap[x, y].biomeType == biome.Grassland_hills)
+                    {
+                        SetTileColour(HillsColor, new Vector3Int(x, y, 0));
+                    }
+                }
+                if (gameMap[x, y].terrainType == terrain.Mountain)
+                {
+                    SetTileColour(MountainColor, new Vector3Int(x, y, 0));
+                }
             }
         }
     }
-
     private void SetTileColour(Color colour, Vector3Int position)
     {
         Tile tile = new Tile();
@@ -108,6 +225,23 @@ public class generation : MonoBehaviour
                 value = (value - min) / (max - min);
                 noiseMap[x, y] = value;
             }
+        }
+    }
+
+    private void spreadBiome(int x, int y, biome biomeToSpread, List<int> terrainToChange, int chance, int strength)
+    {
+        if (x < 0 || y < 0) return;
+        if (x >= mapWidth || y >= mapHeight) return;
+
+        int val = (int)gameMap[x, y].terrainType;
+        if (terrainToChange.Contains(val) == true)
+            gameMap[x, y].biomeType = biomeToSpread;
+        else return;
+        if (Random.Range(0, 100) < chance) {
+            spreadBiome(x + 1, y, biomeToSpread, terrainToChange, chance - strength, strength);
+            spreadBiome(x, y + 1, biomeToSpread, terrainToChange, chance - strength, strength);
+            spreadBiome(x - 1, y, biomeToSpread, terrainToChange, chance - strength, strength);
+            spreadBiome(x, y - 1, biomeToSpread, terrainToChange, chance - strength, strength);
         }
     }
 }
