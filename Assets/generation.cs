@@ -28,6 +28,7 @@ enum biome
     Grassland_hills,
     Forest,
     Mountains,
+    Corruption,
 }
 class gameTile
 {
@@ -141,21 +142,42 @@ public class generation : MonoBehaviour
             }
         }
 
+        spreadBiome(Random.Range(0, mapWidth),
+                    Random.Range(0, mapHeight),
+                    biome.Corruption, new List<int>() { (int)terrain.DeepOcean,
+                                                        (int)terrain.ShallowWater,
+                                                        (int)terrain.Plain,
+                                                        (int)terrain.Hills,
+                                                        (int)terrain.Mountain},
+                    600,
+                    5);
+
+
         //Colour for tilemap
         for (int x = 0; x < mapWidth; x++)
         {
             for (int y = 0; y < mapHeight; y++)
             {
-                if (gameMap[x, y].biomeType == biome.DeepOcean)
+                if (gameMap[x, y].terrainType == terrain.DeepOcean)
                 {
-                    SetTileColour(DeepColor, new Vector3Int(x, y, 0));
+                    if(gameMap[x, y].biomeType != biome.Corruption)
+                        SetTileColour(DeepColor, new Vector3Int(x, y, 0));
+                    else
+                        SetTileColour(new Color(0.024f, 0.21f, 0.26f, 1), new Vector3Int(x, y, 0));
                 }
                 if (gameMap[x, y].terrainType == terrain.ShallowWater)
                 {
-                    SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                    if (gameMap[x, y].biomeType != biome.Corruption)
+                        SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                    else
+                        SetTileColour(new Color(0.47f, 0.35f, 0.56f, 1), new Vector3Int(x, y, 0));
+                    
                 }
                 if (gameMap[x, y].terrainType == terrain.Plain)
                 {
+                    if (gameMap[x, y].biomeType == biome.Corruption)
+                        SetTileColour(new Color(0.41f, 0.10f, 0.63f, 1), new Vector3Int(x, y, 0));
+                    else
                     if (gameMap[x, y].biomeType == biome.Beach)
                     {
                         SetTileColour(SandColor, new Vector3Int(x, y, 0));
@@ -167,6 +189,9 @@ public class generation : MonoBehaviour
                 }
                 if (gameMap[x, y].terrainType == terrain.Hills)
                 {
+                    if (gameMap[x, y].biomeType == biome.Corruption)
+                        SetTileColour(new Color(0.32f, 0.06f, 0.5f, 1), new Vector3Int(x, y, 0));
+                    else
                     if (gameMap[x, y].biomeType == biome.Grassland_hills)
                     {
                         SetTileColour(HillsColor, new Vector3Int(x, y, 0));
@@ -174,7 +199,10 @@ public class generation : MonoBehaviour
                 }
                 if (gameMap[x, y].terrainType == terrain.Mountain)
                 {
-                    SetTileColour(MountainColor, new Vector3Int(x, y, 0));
+                    if (gameMap[x, y].biomeType == biome.Corruption)
+                        SetTileColour(new Color(0.14f, 0.03f, 0.22f, 1), new Vector3Int(x, y, 0));
+                    else
+                        SetTileColour(MountainColor, new Vector3Int(x, y, 0));
                 }
             }
         }
@@ -232,6 +260,7 @@ public class generation : MonoBehaviour
     {
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
+        if (gameMap[x, y].biomeType == biomeToSpread) return;
 
         int val = (int)gameMap[x, y].terrainType;
         if (terrainToChange.Contains(val) == true)
