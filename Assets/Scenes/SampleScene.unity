@@ -514,12 +514,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd9e987cdccdeca43b20df9f27d9c1df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapHeight: 256
-  mapWidth: 256
+  mapHeight: 128
+  mapWidth: 128
   TerrainOctaves: 6
   TerrainFrequency: 1.5
   MountainFrequency: 105
   square: {fileID: 7482667652216324306, guid: aa8b43f8995a92f4ebe32f463ba63fec, type: 3}
+  scale: 20
+  seed: 0
+  octaves: 6
+  persistence: 0.5
+  lacunarity: 2
 --- !u!483693784 &668585661
 TilemapRenderer:
   m_ObjectHideFlags: 0

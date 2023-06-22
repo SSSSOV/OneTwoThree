@@ -56,10 +56,12 @@ public class generation : MonoBehaviour {
 
     Tilemap colorMap = null;
     public float[,] noiseMap = null;
+
+    [Header("Generation settings")]
     [SerializeField]
-    int mapHeight = 10;
+    int mapHeight = 128;
     [SerializeField]
-    int mapWidth = 10;
+    int mapWidth = 128;
     [SerializeField]
     int TerrainOctaves = 6;
     [SerializeField]
@@ -69,13 +71,25 @@ public class generation : MonoBehaviour {
     [SerializeField]
     Sprite square = null;
 
-    Fractal module = null;
+    // New noise map generation
+    [Header("New noise map generation settings")]
+    [SerializeField]
+    public float scale = 20f;
+    [SerializeField]
+    public int seed = 0;
+    [SerializeField]
+    public int octaves = 6;
+    [SerializeField]
+    public float persistence = 0.5f;
+    [SerializeField]
+    public float lacunarity = 2f;
 
+    Fractal module = null;
 
     // Start is called before the first frame update
     void Start() {
-        //generationV1();
-        generationV2();
+        generationV1();
+        //generationV2();
     }
 
     private void generationV1()
@@ -235,7 +249,8 @@ public class generation : MonoBehaviour {
             }
         }
 
-        paint_terrains();
+        //paint_terrains();
+        paint_ready();
     }
     private void SetTileColour(Color colour, Vector3Int position) {
         Tile tile = new Tile();
@@ -279,6 +294,35 @@ public class generation : MonoBehaviour {
                 noiseMap[x, y] = value;
             }
         }
+    }
+
+    private float[,] GenerateNoiseMap() {
+        // Create new noise map
+        float[,] noiseMap = new float[mapWidth, mapHeight];
+
+        // Generate noise values for each pixel
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                float amplitude = 1f;
+                float frequency = 1f;
+                float noiseHeight = 0f;
+
+                for (int i = 0; i < octaves; i++) {
+                    float sampleX = (float)x / scale * frequency + seed;
+                    float sampleY = (float)y / scale * frequency + seed;
+
+                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2f - 1f;
+                    noiseHeight += perlinValue * amplitude;
+
+                    amplitude *= persistence;
+                    frequency *= lacunarity;
+                }
+
+                noiseMap[x, y] = noiseHeight;
+            }
+        }
+
+        return noiseMap;
     }
 
     private void spreadBiome(int x, int y, biome biomeToSpread, List<int> terrainToChange, int chance, int strength) {
