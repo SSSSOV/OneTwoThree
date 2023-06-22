@@ -11,7 +11,8 @@ using Unity.VisualScripting;
 enum terrain {
     None,
     DeepOcean,
-    ShallowWater,
+    Ocean,
+    Beach,
     Plain,
     Hills,
     Mountain,
@@ -20,6 +21,7 @@ enum terrain {
 enum biome {
     None,
     DeepOcean,
+    Ocean,
     Beach,
     Desert,
     Desert_hills,
@@ -63,6 +65,8 @@ public class generation : MonoBehaviour {
     [SerializeField]
     double TerrainFrequency = 1.25;
     [SerializeField]
+    int MountainFrequency = 50;
+    [SerializeField]
     Sprite square = null;
 
     Fractal module = null;
@@ -70,56 +74,78 @@ public class generation : MonoBehaviour {
 
     // Start is called before the first frame update
     void Start() {
+        //generationV1();
+        generationV2();
+    }
+
+    private void generationV1()
+    {
         colorMap = GetComponent<Tilemap>();
-        Initialize();
         generateNoiseMap();
         gameMap = new gameTile[mapWidth, mapHeight];
 
         //Terrain types
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
                 gameMap[x, y] = new gameTile();
-                if (noiseMap[x, y] > 0.8f) {
+                if (noiseMap[x, y] > 0.8f)
+                {
                     gameMap[x, y].terrainType = terrain.Mountain;
                 }
-                else if (noiseMap[x, y] > 0.6f) {
+                else if (noiseMap[x, y] > 0.6f)
+                {
                     gameMap[x, y].terrainType = terrain.Hills;
                 }
-                else if (noiseMap[x, y] > 0.4f) {
+                else if (noiseMap[x, y] > 0.4f)
+                {
                     gameMap[x, y].terrainType = terrain.Plain;
                 }
-                else if (noiseMap[x, y] > 0.1f) {
-                    gameMap[x, y].terrainType = terrain.ShallowWater;
+                else if (noiseMap[x, y] > 0.3f)
+                {
+                    gameMap[x, y].terrainType = terrain.Beach;
                 }
-                else {
+                else if (noiseMap[x, y] > 0.1f)
+                {
+                    gameMap[x, y].terrainType = terrain.Ocean;
+                }
+                else
+                {
                     gameMap[x, y].terrainType = terrain.DeepOcean;
                 }
             }
         }
 
         //Biomes
-        for (int x = 0; x < mapWidth; x++) {
-            for (int y = 0; y < mapHeight; y++) {
-                if (gameMap[x, y].terrainType == terrain.DeepOcean) {
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                if (gameMap[x, y].terrainType == terrain.DeepOcean)
+                {
                     gameMap[x, y].biomeType = biome.DeepOcean;
                 }
-                if (gameMap[x, y].terrainType == terrain.ShallowWater) {
-                    gameMap[x, y].biomeType = biome.Beach;
-                    spreadBiome(x - 1, y, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
-                    spreadBiome(x + 1, y, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
-                    spreadBiome(x, y - 1, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
-                    spreadBiome(x, y + 1, biome.Beach, new List<int>() { (int)terrain.Plain }, 120, 20);
+                else if (gameMap[x, y].terrainType == terrain.Ocean)
+                {
+                    gameMap[x, y].biomeType = biome.Ocean;
                 }
-                if (gameMap[x, y].terrainType == terrain.Plain && gameMap[x, y].biomeType == biome.None) {
+                else if (gameMap[x, y].terrainType == terrain.Beach)
+                {
+                    gameMap[x, y].biomeType = biome.Beach;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Plain)
+                {
                     gameMap[x, y].biomeType = biome.Grassland;
                 }
-                if (gameMap[x, y].terrainType == terrain.Hills) {
+                else if (gameMap[x, y].terrainType == terrain.Hills)
+                {
                     gameMap[x, y].biomeType = biome.Grassland_hills;
                 }
-                if (gameMap[x, y].terrainType == terrain.Mountain) {
+                else if (gameMap[x, y].terrainType == terrain.Mountain)
+                {
                     gameMap[x, y].biomeType = biome.Mountains;
                 }
-
             }
         }
 
@@ -136,6 +162,80 @@ public class generation : MonoBehaviour {
 
         //Colour for tilemap
         paint_ready();
+    }
+    private void generationV2()
+    {
+        colorMap = GetComponent<Tilemap>();
+        generateNoiseMap();
+        gameMap = new gameTile[mapWidth, mapHeight];
+
+        //Terrain types
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                gameMap[x, y] = new gameTile();
+                if (noiseMap[x, y] > 0.4f)
+                {
+                    gameMap[x, y].terrainType = terrain.Plain;
+                }
+                else if (noiseMap[x, y] > 0.3f)
+                {
+                    gameMap[x, y].terrainType = terrain.Beach;
+                }
+                else if (noiseMap[x, y] > 0.1f)
+                {
+                    gameMap[x, y].terrainType = terrain.Ocean;
+                }
+                else
+                {
+                    gameMap[x, y].terrainType = terrain.DeepOcean;
+                }
+            }
+        }
+
+        for (int i = 0; i < MountainFrequency; i ++)
+        {
+            spreadMountainChain(Random.Range(0, mapWidth), 
+                                Random.Range(0, mapHeight),
+                                Random.Range(0, 8),
+                                Random.Range(0, 10),
+                                Random.Range(0, 4));
+        }
+
+        //Biomes
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                if (gameMap[x, y].terrainType == terrain.DeepOcean)
+                {
+                    gameMap[x, y].biomeType = biome.DeepOcean;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Ocean)
+                {
+                    gameMap[x, y].biomeType = biome.Ocean;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Beach)
+                {
+                    gameMap[x, y].biomeType = biome.Beach;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Plain)
+                {
+                    gameMap[x, y].biomeType = biome.Grassland;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Hills)
+                {
+                    gameMap[x, y].biomeType = biome.Grassland_hills;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Mountain)
+                {
+                    gameMap[x, y].biomeType = biome.Mountains;
+                }
+            }
+        }
+
+        paint_terrains();
     }
     private void SetTileColour(Color colour, Vector3Int position) {
         Tile tile = new Tile();
@@ -159,6 +259,7 @@ public class generation : MonoBehaviour {
     }
 
     private void generateNoiseMap() {
+        Initialize();
         float max = 0;
         float min = 0;
         noiseMap = new float[mapWidth, mapHeight];
@@ -197,13 +298,149 @@ public class generation : MonoBehaviour {
         }
     }
 
+    private void spreadTerrain(int x, int y, terrain terrainToSpread, List<int> terrainToChange, int chance, int strength, int side, bool check)
+    {
+        if (x < 0 || y < 0) return;
+        if (x >= mapWidth || y >= mapHeight) return;
+        if (check == true)
+            if (gameMap[x, y].terrainType == terrainToSpread) return;
+
+        int val = (int)gameMap[x, y].terrainType;
+        if (terrainToChange.Contains(val) == true)
+            gameMap[x, y].terrainType = terrainToSpread;
+        //else return;
+        int sideStrength = Mathf.FloorToInt(strength * 1.1f);
+        if (Random.Range(0, 100) < chance)
+        {
+            //all
+            if (side == -1)
+            {
+                spreadTerrain(x + 1, y, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
+                spreadTerrain(x - 1, y, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
+                spreadTerrain(x, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
+                spreadTerrain(x, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
+            }
+            //up
+            if (side == 0)
+            {
+                spreadTerrain(x, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x, y + 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //up-right
+            else if (side == 1)
+            {
+                spreadTerrain(x + 1, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x + 1, y + 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //right
+            else if (side == 2)
+            {
+                spreadTerrain(x + 1, y, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x + 1, y, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //right-down
+            else if (side == 3)
+            {
+                spreadTerrain(x + 1, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x + 1, y - 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //down
+            else if (side == 4)
+            {
+                spreadTerrain(x, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x, y - 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //down-left
+            else if (side == 5)
+            {
+                spreadTerrain(x - 1, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x - 1, y - 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //left
+            else if (side == 6)
+            {
+                spreadTerrain(x - 1, y, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x - 1, y, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+            //left-up
+            else if (side == 7)
+            {
+                spreadTerrain(x - 1, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
+                spreadTerrain(x - 1, y + 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
+            }
+        }
+    }
+    private void spreadMountainChain(int x, int y, int side, int length, int offset)
+    {
+        if (length == 0) return;
+        if (x < 0 || y < 0) return;
+        if (x >= mapWidth || y >= mapHeight) return;
+
+        if (gameMap[x, y].terrainType == terrain.Mountain)
+            gameMap[x, y].terrainType = terrain.Plain;
+
+        int newSide = Random.Range(-1, 2) + side;
+        if (newSide < 0) newSide += 8;
+        int oppositeSide = side - 4;
+        if (oppositeSide < 0) oppositeSide += 8;
+
+        if (gameMap[x, y].terrainType == terrain.Plain)
+        {
+            spreadTerrain(x, y, terrain.Mountain, new List<int>() { (int)terrain.Plain }, 160, 30, oppositeSide, true);
+        }
+        else return;
+
+        //up
+        if (newSide == 0)
+        {
+            spreadMountainChain(x, y + offset, newSide, length - 1, offset);
+        }
+        //up-right
+        else if (newSide == 1)
+        {
+            spreadMountainChain(x + offset, y + offset, newSide, length - 1, offset);
+        }
+        //right
+        else if (newSide == 2)
+        {
+            spreadMountainChain(x + offset, y, newSide, length - 1, offset);
+        }
+        //right-down
+        else if (newSide == 3)
+        {
+            spreadMountainChain(x + offset, y - offset, newSide, length - 1, offset);
+        }
+        //down
+        else if (newSide == 4)
+        {
+            spreadMountainChain(x, y - offset, newSide, length - 1, offset);
+        }
+        //down-left
+        else if (newSide == 5)
+        {
+            spreadMountainChain(x - offset, y - offset, newSide, length - 1, offset);
+        }
+        //left
+        else if (newSide == 6)
+        {
+            spreadMountainChain(x - offset, y, newSide, length - 1, offset);
+        }
+        //left-up
+        else if (newSide == 7)
+        {
+            spreadMountainChain(x - offset, y + offset, newSide, length - 1, offset);
+        }
+
+    }
     public void paint_terrains() {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].terrainType == terrain.DeepOcean)
                     SetTileColour(DeepColor, new Vector3Int(x, y, 0));
-                else if (gameMap[x, y].terrainType == terrain.ShallowWater)
+                else if (gameMap[x, y].terrainType == terrain.Ocean)
                     SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].terrainType == terrain.Beach)
+                    SetTileColour(SandColor, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Plain)
                     SetTileColour(GrassColor, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Hills)
@@ -248,9 +485,17 @@ public class generation : MonoBehaviour {
                     else
                         SetTileColour(new Color(0.024f, 0.21f, 0.26f, 1), new Vector3Int(x, y, 0));
                 }
-                else if (gameMap[x, y].terrainType == terrain.ShallowWater) {
+                else if (gameMap[x, y].terrainType == terrain.Ocean) {
                     if (gameMap[x, y].biomeType != biome.Corruption)
                         SetTileColour(ShallowColor, new Vector3Int(x, y, 0));
+                    else
+                        SetTileColour(new Color(0.47f, 0.35f, 0.56f, 1), new Vector3Int(x, y, 0));
+
+                }
+                else if (gameMap[x, y].terrainType == terrain.Beach)
+                {
+                    if (gameMap[x, y].biomeType != biome.Corruption)
+                        SetTileColour(SandColor, new Vector3Int(x, y, 0));
                     else
                         SetTileColour(new Color(0.47f, 0.35f, 0.56f, 1), new Vector3Int(x, y, 0));
 
@@ -259,9 +504,6 @@ public class generation : MonoBehaviour {
                     if (gameMap[x, y].biomeType == biome.Corruption)
                         SetTileColour(new Color(0.41f, 0.10f, 0.63f, 1), new Vector3Int(x, y, 0));
                     else
-                    if (gameMap[x, y].biomeType == biome.Beach) {
-                        SetTileColour(SandColor, new Vector3Int(x, y, 0));
-                    }
                     if (gameMap[x, y].biomeType == biome.Grassland) {
                         SetTileColour(GrassColor, new Vector3Int(x, y, 0));
                     }
