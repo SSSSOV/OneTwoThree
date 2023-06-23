@@ -517,14 +517,16 @@ MonoBehaviour:
   mapHeight: 128
   mapWidth: 128
   TerrainOctaves: 6
-  TerrainFrequency: 1.5
-  MountainFrequency: 105
+  TerrainFrequency: 1.25
+  MountainFrequency: 50
   square: {fileID: 7482667652216324306, guid: aa8b43f8995a92f4ebe32f463ba63fec, type: 3}
-  scale: 20
+  scale: 40
   seed: 0
   octaves: 6
   persistence: 0.5
   lacunarity: 2
+  tempOctaves: 6
+  tempFrequency: 1.25
 --- !u!483693784 &668585661
 TilemapRenderer:
   m_ObjectHideFlags: 0
@@ -571,7 +573,7 @@ TilemapRenderer:
   m_MaxChunkCount: 16
   m_MaxFrameAge: 16
   m_SortOrder: 0
-  m_Mode: 0
+  m_Mode: 1
   m_DetectChunkCullingBounds: 0
   m_MaskInteraction: 0
 --- !u!1839735485 &668585662

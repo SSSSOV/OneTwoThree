@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.UIElements;
 using UnityEngine.Sprites;
-using AccidentalNoise;
 using UnityEngine.Rendering;
 using Unity.VisualScripting;
+using TinkerWorX.AccidentalNoiseLibrary;
 
 enum terrain {
     None,
@@ -17,7 +17,6 @@ enum terrain {
     Hills,
     Mountain,
 }
-
 enum biome {
     None,
     DeepOcean,
@@ -31,16 +30,25 @@ enum biome {
     Mountains,
     Corruption,
 }
+enum climate
+{
+    None,
+    Polar,
+    Cold,
+    Temperate,
+    Subtropical,
+    Tropcial,
+}
 class gameTile {
     public terrain terrainType { get; set; }
     public biome biomeType { get; set; }
+    public climate climateType { get; set; }
     public Sprite sprite { get; set; }
 
     public gameTile() {
-        //terrainType = new terrain();
         terrainType = terrain.None;
-        //biomeType = new biome();
         biomeType = biome.None;
+        climateType = climate.None;
     }
 }
 
@@ -72,22 +80,29 @@ public class generation : MonoBehaviour {
     Sprite square = null;
 
     // New noise map generation
-    [Header("New noise map generation settings")]
-    [SerializeField]
-    public float scale = 20f;
-    [SerializeField]
-    public int seed = 0;
-    [SerializeField]
-    public int octaves = 6;
-    [SerializeField]
-    public float persistence = 0.5f;
-    [SerializeField]
-    public float lacunarity = 2f;
+    //[Header("New noise map generation settings")]
+    //[SerializeField]
+    //public float scale = 20f;
+    //[SerializeField]
+    //public int seed = 0;
+    //[SerializeField]
+    //public int octaves = 6;
+    //[SerializeField]
+    //public float persistence = 0.5f;
+    //[SerializeField]
+    //public float lacunarity = 2f;
 
-    Fractal module = null;
+    int tempOctaves = 4;
+    double tempFrequency = 3.25;
+
+    ImplicitFractal terrainFractal = null;
+    ImplicitFractal tempFractal = null;
+    ImplicitGradient tempGradient = null;
 
     // Start is called before the first frame update
     void Start() {
+        Random.InitState(Time.frameCount);
+        Initialize();
         generationV1();
         //generationV2();
     }
@@ -95,38 +110,70 @@ public class generation : MonoBehaviour {
     private void generationV1()
     {
         colorMap = GetComponent<Tilemap>();
-        generateNoiseMap();
         gameMap = new gameTile[mapWidth, mapHeight];
 
         //Terrain types
+        terrainFractal.Seed = Random.Range(0, int.MaxValue);
+        generateTerrainNoiseMap();
         for (int x = 0; x < mapWidth; x++)
         {
             for (int y = 0; y < mapHeight; y++)
             {
                 gameMap[x, y] = new gameTile();
-                if (noiseMap[x, y] > 0.8f)
+                if (noiseMap[x, y] > 0.9f)
                 {
                     gameMap[x, y].terrainType = terrain.Mountain;
                 }
-                else if (noiseMap[x, y] > 0.6f)
+                else if (noiseMap[x, y] > 0.75f)
                 {
                     gameMap[x, y].terrainType = terrain.Hills;
                 }
-                else if (noiseMap[x, y] > 0.4f)
+                else if (noiseMap[x, y] > 0.6f)
                 {
                     gameMap[x, y].terrainType = terrain.Plain;
                 }
-                else if (noiseMap[x, y] > 0.3f)
+                else if (noiseMap[x, y] > 0.5f)
                 {
                     gameMap[x, y].terrainType = terrain.Beach;
                 }
-                else if (noiseMap[x, y] > 0.1f)
+                else if (noiseMap[x, y] > 0.45f)
                 {
                     gameMap[x, y].terrainType = terrain.Ocean;
                 }
                 else
                 {
                     gameMap[x, y].terrainType = terrain.DeepOcean;
+                }
+            }
+        }
+
+        //Climate Zones
+        tempFractal.Seed = Random.Range(0, int.MaxValue);
+        generateTempNoiseMap();
+
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                if (noiseMap[x, y] > 0.95f)
+                {
+                    gameMap[x, y].climateType = climate.Tropcial;
+                }
+                else if (noiseMap[x, y] > 0.85f)
+                {
+                    gameMap[x, y].climateType = climate.Subtropical;
+                }
+                else if (noiseMap[x, y] > 0.65f)
+                {
+                    gameMap[x, y].climateType = climate.Temperate;
+                }
+                else if (noiseMap[x, y] > 0.48f)
+                {
+                    gameMap[x, y].climateType = climate.Cold;
+                }
+                else
+                {
+                    gameMap[x, y].climateType = climate.Polar;
                 }
             }
         }
@@ -163,24 +210,12 @@ public class generation : MonoBehaviour {
             }
         }
 
-        //spreadBiome(Random.Range(0, mapWidth),
-        //            Random.Range(0, mapHeight),
-        //            biome.Corruption, new List<int>() { (int)terrain.DeepOcean,
-        //                                                (int)terrain.ShallowWater,
-        //                                                (int)terrain.Plain,
-        //                                                (int)terrain.Hills,
-        //                                                (int)terrain.Mountain},
-        //            600,
-        //            5);
-
-
-        //Colour for tilemap
-        paint_ready();
+        paint_ClimateZones();
     }
     private void generationV2()
     {
         colorMap = GetComponent<Tilemap>();
-        generateNoiseMap();
+        generateTerrainNoiseMap();
         gameMap = new gameTile[mapWidth, mapHeight];
 
         //Terrain types
@@ -258,33 +293,99 @@ public class generation : MonoBehaviour {
         tile.color = colour;
         colorMap.SetTile(position, tile);
     }
-
-    // Update is called once per frame
     void Update() {
-
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            generationV1();
+        }
     }
-
     private void Initialize() {
-        module = new Fractal(FractalType.MULTI,
-                             BasisTypes.SIMPLEX,
-                             InterpTypes.QUINTIC,
-                             TerrainOctaves,
-                             TerrainFrequency,
-                             (uint)Random.Range(0, int.MaxValue));
+
+        //terrain
+        terrainFractal = new ImplicitFractal (FractalType.Billow,
+                             BasisType.Simplex,
+                             InterpolationType.Quintic);
+        terrainFractal.Octaves = TerrainOctaves;
+        terrainFractal.Frequency = TerrainFrequency;
+
+        //temp
+        tempFractal = new ImplicitFractal(FractalType.Multi,
+                             BasisType.Simplex,
+                             InterpolationType.Quintic);
+        tempFractal.Octaves = tempOctaves;
+        tempFractal.Frequency = tempFrequency;
+
+        tempGradient = new ImplicitGradient(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1);
     }
 
-    private void generateNoiseMap() {
-        Initialize();
+    private void generateTerrainNoiseMap() {
         float max = 0;
         float min = 0;
         noiseMap = new float[mapWidth, mapHeight];
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
-                //Сэмплируем шум с небольшими интервалами
-                float x1 = x / (float)mapWidth;
-                float y1 = y / (float)mapHeight;
 
-                float value = (float)module.Get(x1, y1);
+                ////Сэмплируем шум с небольшими интервалами
+                //float x1 = x / (float)mapWidth;
+                //float y1 = y / (float)mapHeight;
+
+                //float value = (float)terrainFractal.Get(x1, y1);
+
+                // Пределы шума
+                float x1 = 0, x2 = 2;
+                float y1 = 0, y2 = 2;
+                float dx = x2 - x1;
+                float dy = y2 - y1;
+
+                //Сэмплируем шум с небольшими интервалами
+                float s = x / (float)mapWidth;
+                float t = y / (float)mapHeight;
+
+                // Вычисляем четырехмерные координаты
+                float nx = x1 + Mathf.Cos(s * 2 * Mathf.PI) * dx / (2 * Mathf.PI);
+                float ny = y1 + Mathf.Cos(t * 2 * Mathf.PI) * dy / (2 * Mathf.PI);
+                float nz = x1 + Mathf.Sin(s * 2 * Mathf.PI) * dx / (2 * Mathf.PI);
+                float nw = y1 + Mathf.Sin(t * 2 * Mathf.PI) * dy / (2 * Mathf.PI);
+
+                float value = (float)terrainFractal.Get(nx, ny, nz, nw);
+
+                //отслеживаем максимальные и минимальные найденные значения
+                if (value > max) max = value;
+                if (value < min) min = value;
+
+                value = (value - min) / (max - min);
+                noiseMap[x, y] = value;
+                
+            }
+        }
+    }
+
+    private void generateTempNoiseMap()
+    {
+        float max = 0;
+        float min = 0;
+        noiseMap = new float[mapWidth, mapHeight];
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                // Пределы шума
+                float x1 = 0, x2 = 2;
+                float y1 = 0, y2 = 2;
+                float dx = x2 - x1;
+                float dy = y2 - y1;
+
+                //Сэмплируем шум с небольшими интервалами
+                float s = x / (float)mapWidth;
+                float t = y / (float)mapHeight;
+
+                // Вычисляем четырехмерные координаты
+                float nx = x1 + Mathf.Cos(s * 2 * Mathf.PI) * dx / (2 * Mathf.PI);
+                float ny = y1 + Mathf.Cos(t * 2 * Mathf.PI) * dy / (2 * Mathf.PI);
+                float nz = x1 + Mathf.Sin(s * 2 * Mathf.PI) * dx / (2 * Mathf.PI);
+                float nw = y1 + Mathf.Sin(t * 2 * Mathf.PI) * dy / (2 * Mathf.PI);
+
+                float value = (float)tempGradient.Get(nx, ny, nz, nw) * 0.85f + (float)tempFractal.Get(nx, ny, nz, nw) * 0.15f;
 
                 //отслеживаем максимальные и минимальные найденные значения
                 if (value > max) max = value;
@@ -295,36 +396,36 @@ public class generation : MonoBehaviour {
             }
         }
     }
+    //private float[,] GenerateNoiseMap() {
+    //    // Create new noise map
+    //    float[,] noiseMap = new float[mapWidth, mapHeight];
 
-    private float[,] GenerateNoiseMap() {
-        // Create new noise map
-        float[,] noiseMap = new float[mapWidth, mapHeight];
+    //    // Generate noise values for each pixel
+    //    for (int y = 0; y < mapHeight; y++) {
+    //        for (int x = 0; x < mapWidth; x++) {
+    //            float amplitude = 1f;
+    //            float frequency = 1f;
+    //            float noiseHeight = 0f;
 
-        // Generate noise values for each pixel
-        for (int y = 0; y < mapHeight; y++) {
-            for (int x = 0; x < mapWidth; x++) {
-                float amplitude = 1f;
-                float frequency = 1f;
-                float noiseHeight = 0f;
+    //            for (int i = 0; i < octaves; i++) {
+    //                float sampleX = (float)x / scale * frequency + seed;
+    //                float sampleY = (float)y / scale * frequency + seed;
 
-                for (int i = 0; i < octaves; i++) {
-                    float sampleX = (float)x / scale * frequency + seed;
-                    float sampleY = (float)y / scale * frequency + seed;
+    //                float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2f - 1f;
+    //                noiseHeight += perlinValue * amplitude;
 
-                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2f - 1f;
-                    noiseHeight += perlinValue * amplitude;
+    //                amplitude *= persistence;
+    //                frequency *= lacunarity;
+    //            }
 
-                    amplitude *= persistence;
-                    frequency *= lacunarity;
-                }
+    //            noiseMap[x, y] = noiseHeight;
+    //        }
+    //    }
 
-                noiseMap[x, y] = noiseHeight;
-            }
-        }
+    //    return noiseMap;
+    //}
 
-        return noiseMap;
-    }
-
+    
     private void spreadBiome(int x, int y, biome biomeToSpread, List<int> terrainToChange, int chance, int strength) {
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
@@ -520,6 +621,25 @@ public class generation : MonoBehaviour {
         }
     }
 
+    public void paint_ClimateZones()
+    {
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                if (gameMap[x, y].climateType == climate.Polar)
+                    SetTileColour(new Color(170/255f, 1, 1, 1), new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].climateType == climate.Cold)
+                    SetTileColour(new Color(0, 229 / 255f, 133 / 255f, 1), new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].climateType == climate.Temperate)
+                    SetTileColour(new Color(1, 1, 100 / 255f, 1), new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].climateType == climate.Subtropical)
+                    SetTileColour(new Color(1, 100 / 255f, 0, 1), new Vector3Int(x, y, 0));
+                else
+                    SetTileColour(new Color(241 / 255f, 12 / 255f, 0, 1), new Vector3Int(x, y, 0));
+            }
+        }
+    }
     public void paint_ready() {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
