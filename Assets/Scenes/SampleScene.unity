@@ -514,19 +514,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd9e987cdccdeca43b20df9f27d9c1df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapHeight: 128
-  mapWidth: 128
+  mapHeight: 256
+  mapWidth: 256
   TerrainOctaves: 6
-  TerrainFrequency: 1.25
-  MountainFrequency: 50
+  TerrainFrequency: 1.75
+  tempOctaves: 4
+  tempFrequency: 3.25
+  moistureOctaves: 4
+  moistureFrequency: 3
   square: {fileID: 7482667652216324306, guid: aa8b43f8995a92f4ebe32f463ba63fec, type: 3}
-  scale: 40
-  seed: 0
-  octaves: 6
-  persistence: 0.5
-  lacunarity: 2
-  tempOctaves: 6
-  tempFrequency: 1.25
+  MountainTopValue: 0.6375
+  MountainValue: 0.52
+  HillsValue: 0.42
+  PlainsValue: 0.31
+  BeachValue: 0.28
+  OceanValue: 0.15
+  TropicalValue: 0.95
+  SubtropicalValue: 0.85
+  TemperateValue: 0.65
+  ColdValue: 0.48
+  HighestValue: 0.9
+  HighValue: 0.62
+  MediumValue: 0.34
+  LowValue: 0.21
 --- !u!483693784 &668585661
 TilemapRenderer:
   m_ObjectHideFlags: 0
@@ -650,7 +660,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -577.5, y: -313}
+  m_AnchoredPosition: {x: -513.5, y: -218.5}
   m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &725330351
@@ -699,7 +709,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 668585660}
         m_TargetAssemblyTypeName: generation, Assembly-CSharp
-        m_MethodName: paint_biomes
+        m_MethodName: paint_ClimateZones
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -783,7 +793,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -449.5, y: -313}
+  m_AnchoredPosition: {x: -385.5, y: -218.5}
   m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1069002344
@@ -832,7 +842,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 668585660}
         m_TargetAssemblyTypeName: generation, Assembly-CSharp
-        m_MethodName: paint_ready
+        m_MethodName: paint_terrain
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1021,7 +1031,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -513.5, y: -313}
+  m_AnchoredPosition: {x: -449.5, y: -218.5}
   m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1962788029
@@ -1070,7 +1080,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 668585660}
         m_TargetAssemblyTypeName: generation, Assembly-CSharp
-        m_MethodName: paint_terrains
+        m_MethodName: paint_moisture
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
