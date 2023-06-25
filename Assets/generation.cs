@@ -18,19 +18,6 @@ enum terrain {
     Mountain,
     MountainTop
 }
-enum biome {
-    None,
-    DeepOcean,
-    Ocean,
-    Beach,
-    Desert,
-    Desert_hills,
-    Grassland,
-    Grassland_hills,
-    Forest,
-    Mountains,
-    Corruption,
-}
 enum climate
 {
     None,
@@ -49,7 +36,23 @@ public enum moisture
     High,
     Highest,
 }
-
+enum biome
+{
+    None,
+    Ice,
+    SnowWasteland,
+    Tundra,
+    BorealForest,
+    Grassland, 
+    TemperateForest,
+    SeasonalForest,
+    Savanna,
+    Desert, 
+    Rainforest,
+    WarmOcean,
+    TemperateOcean,
+    ColdOcean,
+}
 static class gameColors
 {
     public static class terrainColors
@@ -79,6 +82,23 @@ static class gameColors
         public static Color Medium = new Color(80 / 255f, 255 / 255f, 0 / 255f, 1);
         public static Color Low = new Color(245 / 255f, 245 / 255f, 23 / 255f, 1);
         public static Color Lowest = new Color(255 / 255f, 139 / 255f, 17 / 255f, 1);
+    }
+
+    public static class BiomeColors
+    {
+        public static Color Ice = new Color(1f, 1f, 1f, 1);
+        public static Color SnowWasteland = new Color(0.828f, 0.915f, 0.92f, 1);
+        public static Color Tundra = new Color(0.397f, 0.628f, 0.64f, 1);
+        public static Color BorealForest = new Color(0.0228f, 0.38f, 0.285f, 1);
+        public static Color Savanna = new Color(0.64f, 0.571f, 0.0448f, 1);
+        public static Color Grassland = new Color(129 / 255f, 179 / 255f, 96 / 255f, 1);
+        public static Color TemperateForest = new Color(0.0144f, 0.36f, 0.135f, 1);
+        public static Color SeasonalForest = new Color(0.063f, 0.45f, 0.198f, 1);
+        public static Color Desert = new Color(232 / 255f, 228 / 255f, 167 / 255f, 1);
+        public static Color Rainforest = new Color(0.33f, 0.77f, 0.231f, 1);
+        public static Color WarmOcean = new Color(0.315f, 0.71f, 0.83f, 1);
+        public static Color TemperateOcean = new Color(0.198f, 0.522f, 0.62f, 1);
+        public static Color ColdOcean = new Color(0.147f, 0.387f, 0.46f, 1);
     }
 }
 
@@ -155,7 +175,7 @@ public class generation : MonoBehaviour {
     [SerializeField]
     float HighValue = 0.62f;
     [SerializeField]
-    float MediumValue = 0.34f;
+    float MediumValue = 0.39f;
     [SerializeField]
     float LowValue = 0.21f;
 
@@ -191,7 +211,7 @@ public class generation : MonoBehaviour {
     {
         //Terrain types
         terrainFractal.Seed = Random.Range(0, int.MaxValue);
-        generateNoiseMap(terrainFractal);
+        generateNoiseMap(new float[] { 1 }, terrainFractal);
         for (int x = 0; x < mapWidth; x++)
         {
             for (int y = 0; y < mapHeight; y++)
@@ -230,7 +250,7 @@ public class generation : MonoBehaviour {
 
         //Climate Zones
         tempFractal.Seed = Random.Range(0, int.MaxValue);
-        generateNoiseMap(tempFractal);
+        generateNoiseMap(new float[] { 0.85f, 0.15f }, tempGradient, tempFractal);
 
         for (int x = 0; x < mapWidth; x++)
         {
@@ -260,15 +280,26 @@ public class generation : MonoBehaviour {
         }
 
         //Moisture
-        generateNoiseMap(moistureFractal);
+        generateNoiseMap(new float[] { 1 }, moistureFractal);
 
         for (int x = 0; x < mapWidth; x++)
         {
             for (int y = 0; y < mapHeight; y++)
             {
+                //adjust value according to climate
+                if (gameMap[x, y].climateType == climate.Cold)
+                {
+                    noiseMap[x, y] -= 0.2f * ColdValue;
+                }
+                else if (gameMap[x, y].climateType == climate.Polar)
+                {
+                    noiseMap[x, y] += 0.55f * ColdValue;
+                }
+
+                //adjust value according to terrain
                 if (gameMap[x, y].terrainType == terrain.DeepOcean)
                 {
-                    noiseMap[x, y] += 5.5f * OceanValue;
+                    noiseMap[x, y] += 8f * OceanValue;
                 }
                 else if (gameMap[x, y].terrainType == terrain.Ocean)
                 {
@@ -283,6 +314,7 @@ public class generation : MonoBehaviour {
                     noiseMap[x, y] += 0.25f * PlainsValue;
                 }
 
+                //Select moisture level
                 if (noiseMap[x, y] > HighestValue)
                 {
                     gameMap[x, y].moistureType = moisture.Highest;
@@ -306,7 +338,141 @@ public class generation : MonoBehaviour {
             }
         }
 
+        //Biomes
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                //DeepOcean
+                if (gameMap[x, y].terrainType == terrain.DeepOcean)
+                {
+                    if (gameMap[x, y].climateType == climate.Tropcial ||
+                        gameMap[x, y].climateType == climate.Subtropical)
+                    {
+                        gameMap[x, y].biomeType = biome.WarmOcean;
+                    }
+                    else if (gameMap[x, y].climateType == climate.Temperate)
+                    {
+                        gameMap[x, y].biomeType = biome.TemperateOcean;
+                    }
+                    else gameMap[x, y].biomeType = biome.ColdOcean;
+                }
+
+                //Ocean
+                else if (gameMap[x, y].terrainType == terrain.Ocean)
+                {
+                    if (gameMap[x, y].climateType == climate.Tropcial ||
+                        gameMap[x, y].climateType == climate.Subtropical)
+                    {
+                        gameMap[x, y].biomeType = biome.WarmOcean;
+                    }
+                    else if (gameMap[x, y].climateType == climate.Temperate)
+                    {
+                        gameMap[x, y].biomeType = biome.TemperateOcean;
+                    }
+                    else gameMap[x, y].biomeType = biome.ColdOcean;
+                }
+
+                //Plains, Hills, Mountains
+                else
+                {
+                    //Polar
+                    if (gameMap[x, y].climateType == climate.Polar)
+                    {
+                        if (gameMap[x, y].moistureType == moisture.Lowest ||
+                            gameMap[x, y].moistureType == moisture.Low)
+                        {
+                            gameMap[x, y].biomeType = biome.SnowWasteland;
+                        }
+                        else if (gameMap[x, y].moistureType == moisture.Medium)
+                        {
+                            gameMap[x, y].biomeType = biome.Tundra;
+                        }
+                        else
+                        {
+                            gameMap[x, y].biomeType = biome.Ice;
+                        }
+                    }
+
+                    //Cold
+                    else if (gameMap[x, y].climateType == climate.Cold)
+                    {
+                        if (gameMap[x, y].moistureType == moisture.Lowest)
+                        {
+                            gameMap[x, y].biomeType = biome.SnowWasteland;
+                        }
+                        else if (gameMap[x, y].moistureType == moisture.Low ||
+                            gameMap[x, y].moistureType == moisture.Medium)
+                        {
+                            gameMap[x, y].biomeType = biome.Tundra;
+                        }
+                        else
+                        {
+                            gameMap[x, y].biomeType = biome.BorealForest;
+                        }
+                    }
+
+                    //Temperate
+                    else if (gameMap[x, y].climateType == climate.Temperate)
+                    {
+                        if (gameMap[x, y].moistureType == moisture.Lowest)
+                        {
+                            gameMap[x, y].biomeType = biome.Savanna;
+                        }
+                        else if (gameMap[x, y].moistureType == moisture.Low)
+                        {
+                            gameMap[x, y].biomeType = biome.Grassland;
+                        }
+                        else if (gameMap[x, y].moistureType == moisture.Medium)
+                        {
+                            gameMap[x, y].biomeType = biome.TemperateForest;
+                        }
+                        else
+                        {
+                            gameMap[x, y].biomeType = biome.SeasonalForest;
+                        }
+                    }
+
+                    //Subtropical
+                    else if (gameMap[x, y].climateType == climate.Subtropical)
+                    {
+                        if (gameMap[x, y].moistureType == moisture.Lowest)
+                        {
+                            gameMap[x, y].biomeType = biome.Desert;
+                        }
+                        else if (gameMap[x, y].moistureType == moisture.Low ||
+                            gameMap[x, y].moistureType == moisture.Medium)
+                        {
+                            gameMap[x, y].biomeType = biome.Savanna;
+                        }
+                        else
+                        {
+                            gameMap[x, y].biomeType = biome.Rainforest;
+                        }
+                    }
+
+                    //Tropical
+                    else if (gameMap[x, y].climateType == climate.Tropcial)
+                    {
+                        if (gameMap[x, y].moistureType == moisture.Lowest ||
+                            gameMap[x, y].moistureType == moisture.Low)
+                        {
+                            gameMap[x, y].biomeType = biome.Desert;
+                        }
+                        else if (gameMap[x, y].moistureType == moisture.Medium)
+                        {
+                            gameMap[x, y].biomeType = biome.Savanna;
+                        }
+                        else
+                        {
+                            gameMap[x, y].biomeType = biome.Rainforest;
+                        }
+                    }
+                }
+            }
+        }
         paint_moisture();
+        //paint_ClimateZones();
     }
     private void SetTileColour(Tile tile, Color colour, Vector3Int position) {
         tile = (Tile)ScriptableObject.CreateInstance("Tile");
@@ -345,9 +511,11 @@ public class generation : MonoBehaviour {
         moistureFractal.Octaves = moistureOctaves;
         moistureFractal.Frequency = moistureFrequency;
     }
-    private void generateNoiseMap(ImplicitModuleBase fractal) {
+    private void generateNoiseMap(float[] weights, params ImplicitModuleBase[] fractals) {
         float max = 0;
         float min = 0;
+        int i = 0;
+        float value = 0;
         noiseMap = new float[mapWidth, mapHeight];
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
@@ -357,7 +525,7 @@ public class generation : MonoBehaviour {
                 //float y1 = y / (float)mapHeight;
 
                 //float value = (float)terrainFractal.Get(x1, y1);
-
+                
                 // Пределы шума
                 float x1 = 0, x2 = 2;
                 float y1 = 0, y2 = 2;
@@ -374,7 +542,10 @@ public class generation : MonoBehaviour {
                 float nz = x1 + Mathf.Sin(s * 2 * Mathf.PI) * dx / (2 * Mathf.PI);
                 float nw = y1 + Mathf.Sin(t * 2 * Mathf.PI) * dy / (2 * Mathf.PI);
 
-                float value = (float)fractal.Get(nx, ny, nz, nw);
+                foreach (ImplicitModuleBase fractal in fractals)
+                {
+                    value += (float)fractal.Get(nx, ny, nz, nw) * weights[i++];
+                }
 
                 //отслеживаем максимальные и минимальные найденные значения
                 if (value > max) max = value;
@@ -382,7 +553,9 @@ public class generation : MonoBehaviour {
 
                 value = (value - min) / (max - min);
                 noiseMap[x, y] = value;
-                
+
+                value = 0;
+                i = 0;
             }
         }
     }
@@ -604,7 +777,6 @@ public class generation : MonoBehaviour {
             }
         }
     }
-
     public void paint_moisture()
     {
         for (int x = 0; x < mapWidth; x++)
@@ -630,7 +802,32 @@ public class generation : MonoBehaviour {
         {
             for (int y = 0; y < mapHeight; y++)
             {
-
+                if (gameMap[x, y].biomeType == biome.Ice)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Ice, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.SnowWasteland)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.SnowWasteland, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.Tundra)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Tundra, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.BorealForest)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.BorealForest, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.Grassland)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Grassland, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.TemperateForest)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.TemperateForest, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.SeasonalForest)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.SeasonalForest, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.Savanna)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Savanna, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.Desert)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Desert, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.Rainforest)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Rainforest, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.WarmOcean)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.WarmOcean, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.TemperateOcean)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.TemperateOcean, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.ColdOcean)
+                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.ColdOcean, new Vector3Int(x, y, 0));
             }
         }
     }
