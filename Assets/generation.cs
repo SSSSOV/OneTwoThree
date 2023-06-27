@@ -18,8 +18,7 @@ enum terrain {
     Mountain,
     MountainTop
 }
-enum climate
-{
+enum climate {
     None,
     Polar,
     Cold,
@@ -27,8 +26,7 @@ enum climate
     Subtropical,
     Tropcial,
 }
-public enum moisture
-{
+public enum moisture {
     None,
     Lowest,
     Low,
@@ -36,27 +34,24 @@ public enum moisture
     High,
     Highest,
 }
-enum biome
-{
+enum biome {
     None,
     Ice,
     SnowWasteland,
     Tundra,
     BorealForest,
-    Grassland, 
+    Grassland,
     TemperateForest,
     SeasonalForest,
     Savanna,
-    Desert, 
+    Desert,
     Rainforest,
     WarmOcean,
     TemperateOcean,
     ColdOcean,
 }
-static class gameColors
-{
-    public static class terrainColors
-    {
+static class gameColors {
+    public static class terrainColors {
         public static Color DeepOcean = new Color(68 / 255f, 139 / 255f, 237 / 255f, 1);
         public static Color Ocean = new Color(93 / 255f, 180 / 255f, 246 / 255f, 1);
         public static Color Beach = new Color(232 / 255f, 228 / 255f, 167 / 255f, 1);
@@ -66,8 +61,7 @@ static class gameColors
         public static Color MountainTop = new Color(1, 1, 1, 1);
     }
 
-    public static class climateColors
-    {
+    public static class climateColors {
         public static Color Polar = new Color(170 / 255f, 1, 1, 1);
         public static Color Cold = new Color(0, 229 / 255f, 133 / 255f, 1);
         public static Color Temperate = new Color(1, 1, 100 / 255f, 1);
@@ -75,8 +69,7 @@ static class gameColors
         public static Color Tropical = new Color(241 / 255f, 12 / 255f, 0, 1);
     }
 
-    public static class MoistureColors
-    {
+    public static class MoistureColors {
         public static Color Highest = new Color(20 / 255f, 70 / 255f, 255 / 255f, 1);
         public static Color High = new Color(85 / 255f, 255 / 255f, 255 / 255f, 1);
         public static Color Medium = new Color(80 / 255f, 255 / 255f, 0 / 255f, 1);
@@ -84,8 +77,7 @@ static class gameColors
         public static Color Lowest = new Color(255 / 255f, 139 / 255f, 17 / 255f, 1);
     }
 
-    public static class BiomeColors
-    {
+    public static class BiomeColors {
         public static Color Ice = new Color(1f, 1f, 1f, 1);
         public static Color SnowWasteland = new Color(0.828f, 0.915f, 0.92f, 1);
         public static Color Tundra = new Color(0.397f, 0.628f, 0.64f, 1);
@@ -127,6 +119,11 @@ public class generation : MonoBehaviour {
 
     [Header("Generation settings")]
     [SerializeField]
+    GameObject MapObject;
+
+    [Header("Generation settings")]
+    [SerializeField]
+    
     int mapHeight = 256;
     [SerializeField]
     int mapWidth = 256;
@@ -179,21 +176,20 @@ public class generation : MonoBehaviour {
     [SerializeField]
     float LowValue = 0.21f;
 
-    // New noise map generation
-    //[Header("New noise map generation settings")]
-    //[SerializeField]
-    //public float scale = 20f;
-    //[SerializeField]
-    //public int seed = 0;
-    //[SerializeField]
-    //public int octaves = 6;
-    //[SerializeField]
-    //public float persistence = 0.5f;
-    //[SerializeField]
-    //public float lacunarity = 2f;
+    //New noise map generation
+    [Header("New noise map generation settings")]
+    [SerializeField]
+    public float scale = 20f;
+    [SerializeField]
+    public int seed = 0;
+    [SerializeField]
+    public int octaves = 6;
+    [SerializeField]
+    public float persistence = 0.5f;
+    [SerializeField]
+    public float lacunarity = 2f;
 
-    int MountainFrequency = 50;
-
+    Texture2D MapTexture;
     ImplicitFractal terrainFractal = null;
     ImplicitFractal tempFractal = null;
     ImplicitFractal moistureFractal = null;
@@ -207,42 +203,39 @@ public class generation : MonoBehaviour {
         Initialize();
         generateMap();
     }
-    private void generateMap()
-    {
+    private void generateMap() {
+
+        terrainFractal.Seed = seed;
+        MapTexture = new Texture2D(mapWidth, mapHeight);
+        terrainFractal.Octaves = TerrainOctaves;
+        terrainFractal.Frequency = TerrainFrequency;
+
         //Terrain types
         terrainFractal.Seed = Random.Range(0, int.MaxValue);
         generateNoiseMap(new float[] { 1 }, terrainFractal);
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
+        //noiseMap = GenerateNoiseMapV2();
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
                 gameMap[x, y] = new gameTile();
-                if (noiseMap[x, y] > MountainTopValue)
-                {
+                if (noiseMap[x, y] > MountainTopValue) {
                     gameMap[x, y].terrainType = terrain.MountainTop;
                 }
-                else if (noiseMap[x, y] > MountainValue)
-                {
+                else if (noiseMap[x, y] > MountainValue) {
                     gameMap[x, y].terrainType = terrain.Mountain;
                 }
-                else if (noiseMap[x, y] > HillsValue)
-                {
+                else if (noiseMap[x, y] > HillsValue) {
                     gameMap[x, y].terrainType = terrain.Hills;
                 }
-                else if (noiseMap[x, y] > PlainsValue)
-                {
+                else if (noiseMap[x, y] > PlainsValue) {
                     gameMap[x, y].terrainType = terrain.Plain;
                 }
-                else if (noiseMap[x, y] > BeachValue)
-                {
+                else if (noiseMap[x, y] > BeachValue) {
                     gameMap[x, y].terrainType = terrain.Beach;
                 }
-                else if (noiseMap[x, y] > OceanValue)
-                {
+                else if (noiseMap[x, y] > OceanValue) {
                     gameMap[x, y].terrainType = terrain.Ocean;
                 }
-                else
-                {
+                else {
                     gameMap[x, y].terrainType = terrain.DeepOcean;
                 }
             }
@@ -252,28 +245,21 @@ public class generation : MonoBehaviour {
         tempFractal.Seed = Random.Range(0, int.MaxValue);
         generateNoiseMap(new float[] { 0.85f, 0.15f }, tempGradient, tempFractal);
 
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
-                if (noiseMap[x, y] > TropicalValue)
-                {
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
+                if (noiseMap[x, y] > TropicalValue) {
                     gameMap[x, y].climateType = climate.Tropcial;
                 }
-                else if (noiseMap[x, y] > SubtropicalValue)
-                {
+                else if (noiseMap[x, y] > SubtropicalValue) {
                     gameMap[x, y].climateType = climate.Subtropical;
                 }
-                else if (noiseMap[x, y] > TemperateValue)
-                {
+                else if (noiseMap[x, y] > TemperateValue) {
                     gameMap[x, y].climateType = climate.Temperate;
                 }
-                else if (noiseMap[x, y] > ColdValue)
-                {
+                else if (noiseMap[x, y] > ColdValue) {
                     gameMap[x, y].climateType = climate.Cold;
                 }
-                else
-                {
+                else {
                     gameMap[x, y].climateType = climate.Polar;
                 }
             }
@@ -281,215 +267,179 @@ public class generation : MonoBehaviour {
 
         //Moisture
         generateNoiseMap(new float[] { 1 }, moistureFractal);
+        //noiseMap = GenerateNoiseMapV2();
 
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
                 //adjust value according to climate
-                if (gameMap[x, y].climateType == climate.Cold)
-                {
+                if (gameMap[x, y].climateType == climate.Cold) {
                     noiseMap[x, y] -= 0.2f * ColdValue;
                 }
-                else if (gameMap[x, y].climateType == climate.Polar)
-                {
+                else if (gameMap[x, y].climateType == climate.Polar) {
                     noiseMap[x, y] += 0.55f * ColdValue;
                 }
 
                 //adjust value according to terrain
-                if (gameMap[x, y].terrainType == terrain.DeepOcean)
-                {
+                if (gameMap[x, y].terrainType == terrain.DeepOcean) {
                     noiseMap[x, y] += 8f * OceanValue;
                 }
-                else if (gameMap[x, y].terrainType == terrain.Ocean)
-                {
+                else if (gameMap[x, y].terrainType == terrain.Ocean) {
                     noiseMap[x, y] += 3f * OceanValue;
                 }
-                else if (gameMap[x, y].terrainType == terrain.Beach)
-                {
+                else if (gameMap[x, y].terrainType == terrain.Beach) {
                     noiseMap[x, y] += 1f * BeachValue;
                 }
-                else if (gameMap[x, y].terrainType == terrain.Plain)
-                {
+                else if (gameMap[x, y].terrainType == terrain.Plain) {
                     noiseMap[x, y] += 0.25f * PlainsValue;
                 }
 
                 //Select moisture level
-                if (noiseMap[x, y] > HighestValue)
-                {
+                if (noiseMap[x, y] > HighestValue) {
                     gameMap[x, y].moistureType = moisture.Highest;
                 }
-                else if (noiseMap[x, y] > HighValue)
-                {
+                else if (noiseMap[x, y] > HighValue) {
                     gameMap[x, y].moistureType = moisture.High;
                 }
-                else if (noiseMap[x, y] > MediumValue)
-                {
+                else if (noiseMap[x, y] > MediumValue) {
                     gameMap[x, y].moistureType = moisture.Medium;
                 }
-                else if (noiseMap[x, y] > LowValue)
-                {
+                else if (noiseMap[x, y] > LowValue) {
                     gameMap[x, y].moistureType = moisture.Low;
                 }
-                else
-                {
+                else {
                     gameMap[x, y].moistureType = moisture.Lowest;
                 }
             }
         }
 
         //Biomes
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
                 //DeepOcean
-                if (gameMap[x, y].terrainType == terrain.DeepOcean)
-                {
+                if (gameMap[x, y].terrainType == terrain.DeepOcean) {
                     if (gameMap[x, y].climateType == climate.Tropcial ||
-                        gameMap[x, y].climateType == climate.Subtropical)
-                    {
+                        gameMap[x, y].climateType == climate.Subtropical) {
                         gameMap[x, y].biomeType = biome.WarmOcean;
                     }
-                    else if (gameMap[x, y].climateType == climate.Temperate)
-                    {
+                    else if (gameMap[x, y].climateType == climate.Temperate) {
                         gameMap[x, y].biomeType = biome.TemperateOcean;
                     }
                     else gameMap[x, y].biomeType = biome.ColdOcean;
                 }
 
                 //Ocean
-                else if (gameMap[x, y].terrainType == terrain.Ocean)
-                {
+                else if (gameMap[x, y].terrainType == terrain.Ocean) {
                     if (gameMap[x, y].climateType == climate.Tropcial ||
-                        gameMap[x, y].climateType == climate.Subtropical)
-                    {
+                        gameMap[x, y].climateType == climate.Subtropical) {
                         gameMap[x, y].biomeType = biome.WarmOcean;
                     }
-                    else if (gameMap[x, y].climateType == climate.Temperate)
-                    {
+                    else if (gameMap[x, y].climateType == climate.Temperate) {
                         gameMap[x, y].biomeType = biome.TemperateOcean;
                     }
                     else gameMap[x, y].biomeType = biome.ColdOcean;
                 }
 
                 //Plains, Hills, Mountains
-                else
-                {
+                else {
                     //Polar
-                    if (gameMap[x, y].climateType == climate.Polar)
-                    {
+                    if (gameMap[x, y].climateType == climate.Polar) {
                         if (gameMap[x, y].moistureType == moisture.Lowest ||
-                            gameMap[x, y].moistureType == moisture.Low)
-                        {
+                            gameMap[x, y].moistureType == moisture.Low) {
                             gameMap[x, y].biomeType = biome.SnowWasteland;
                         }
-                        else if (gameMap[x, y].moistureType == moisture.Medium)
-                        {
+                        else if (gameMap[x, y].moistureType == moisture.Medium) {
                             gameMap[x, y].biomeType = biome.Tundra;
                         }
-                        else
-                        {
+                        else {
                             gameMap[x, y].biomeType = biome.Ice;
                         }
                     }
 
                     //Cold
-                    else if (gameMap[x, y].climateType == climate.Cold)
-                    {
-                        if (gameMap[x, y].moistureType == moisture.Lowest)
-                        {
+                    else if (gameMap[x, y].climateType == climate.Cold) {
+                        if (gameMap[x, y].moistureType == moisture.Lowest) {
                             gameMap[x, y].biomeType = biome.SnowWasteland;
                         }
                         else if (gameMap[x, y].moistureType == moisture.Low ||
-                            gameMap[x, y].moistureType == moisture.Medium)
-                        {
+                            gameMap[x, y].moistureType == moisture.Medium) {
                             gameMap[x, y].biomeType = biome.Tundra;
                         }
-                        else
-                        {
+                        else {
                             gameMap[x, y].biomeType = biome.BorealForest;
                         }
                     }
 
                     //Temperate
-                    else if (gameMap[x, y].climateType == climate.Temperate)
-                    {
-                        if (gameMap[x, y].moistureType == moisture.Lowest)
-                        {
+                    else if (gameMap[x, y].climateType == climate.Temperate) {
+                        if (gameMap[x, y].moistureType == moisture.Lowest) {
                             gameMap[x, y].biomeType = biome.Savanna;
                         }
-                        else if (gameMap[x, y].moistureType == moisture.Low)
-                        {
+                        else if (gameMap[x, y].moistureType == moisture.Low) {
                             gameMap[x, y].biomeType = biome.Grassland;
                         }
-                        else if (gameMap[x, y].moistureType == moisture.Medium)
-                        {
+                        else if (gameMap[x, y].moistureType == moisture.Medium) {
                             gameMap[x, y].biomeType = biome.TemperateForest;
                         }
-                        else
-                        {
+                        else {
                             gameMap[x, y].biomeType = biome.SeasonalForest;
                         }
                     }
 
                     //Subtropical
-                    else if (gameMap[x, y].climateType == climate.Subtropical)
-                    {
-                        if (gameMap[x, y].moistureType == moisture.Lowest)
-                        {
+                    else if (gameMap[x, y].climateType == climate.Subtropical) {
+                        if (gameMap[x, y].moistureType == moisture.Lowest) {
                             gameMap[x, y].biomeType = biome.Desert;
                         }
                         else if (gameMap[x, y].moistureType == moisture.Low ||
-                            gameMap[x, y].moistureType == moisture.Medium)
-                        {
+                            gameMap[x, y].moistureType == moisture.Medium) {
                             gameMap[x, y].biomeType = biome.Savanna;
                         }
-                        else
-                        {
+                        else {
                             gameMap[x, y].biomeType = biome.Rainforest;
                         }
                     }
 
                     //Tropical
-                    else if (gameMap[x, y].climateType == climate.Tropcial)
-                    {
+                    else if (gameMap[x, y].climateType == climate.Tropcial) {
                         if (gameMap[x, y].moistureType == moisture.Lowest ||
-                            gameMap[x, y].moistureType == moisture.Low)
-                        {
+                            gameMap[x, y].moistureType == moisture.Low) {
                             gameMap[x, y].biomeType = biome.Desert;
                         }
-                        else if (gameMap[x, y].moistureType == moisture.Medium)
-                        {
+                        else if (gameMap[x, y].moistureType == moisture.Medium) {
                             gameMap[x, y].biomeType = biome.Savanna;
                         }
-                        else
-                        {
+                        else {
                             gameMap[x, y].biomeType = biome.Rainforest;
                         }
                     }
                 }
             }
         }
-        paint_moisture();
+        //paint_moisture();
         //paint_ClimateZones();
+        paint_terrain();
+        //MapTexture.Apply();
+        MapTexture.filterMode = FilterMode.Point;
+        MapObject.GetComponent<SpriteRenderer>().sprite = Sprite.Create(MapTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
+        MapObject.transform.localScale = new Vector2(50, 50);
     }
     private void SetTileColour(Tile tile, Color colour, Vector3Int position) {
-        tile = (Tile)ScriptableObject.CreateInstance("Tile");
-        tile.sprite = square;
-        tile.color = colour;
-        colorMap.SetTile(position, tile);
+
+        MapTexture.SetPixel(position.x, position.y, colour);
+        //tile = (Tile)ScriptableObject.CreateInstance("Tile");
+        //tile.sprite = square;
+        //tile.color = colour;
+        //colorMap.SetTile(position, tile);
     }
     void Update() {
-        if (Input.GetKeyDown(KeyCode.E))
-        {
+        if (Input.GetKeyDown(KeyCode.E)) {
             generateMap();
         }
     }
     private void Initialize() {
 
         //terrain
-        terrainFractal = new ImplicitFractal (FractalType.Multi,
+        terrainFractal = new ImplicitFractal(FractalType.Billow,
                              BasisType.Simplex,
                              InterpolationType.Quintic);
         terrainFractal.Octaves = TerrainOctaves;
@@ -525,7 +475,7 @@ public class generation : MonoBehaviour {
                 //float y1 = y / (float)mapHeight;
 
                 //float value = (float)terrainFractal.Get(x1, y1);
-                
+
                 // Пределы шума
                 float x1 = 0, x2 = 2;
                 float y1 = 0, y2 = 2;
@@ -542,8 +492,7 @@ public class generation : MonoBehaviour {
                 float nz = x1 + Mathf.Sin(s * 2 * Mathf.PI) * dx / (2 * Mathf.PI);
                 float nw = y1 + Mathf.Sin(t * 2 * Mathf.PI) * dy / (2 * Mathf.PI);
 
-                foreach (ImplicitModuleBase fractal in fractals)
-                {
+                foreach (ImplicitModuleBase fractal in fractals) {
                     value += (float)fractal.Get(nx, ny, nz, nw) * weights[i++];
                 }
 
@@ -559,35 +508,34 @@ public class generation : MonoBehaviour {
             }
         }
     }
+    private float[,] GenerateNoiseMapV2() {
+        // Create new noise map
+        float[,] noiseMap = new float[mapWidth, mapHeight];
 
-    //private float[,] GenerateNoiseMap() {
-    //    // Create new noise map
-    //    float[,] noiseMap = new float[mapWidth, mapHeight];
+        // Generate noise values for each pixel
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                float amplitude = 0.5f;
+                float frequency = 1f;
+                float noiseHeight = 0f;
 
-    //    // Generate noise values for each pixel
-    //    for (int y = 0; y < mapHeight; y++) {
-    //        for (int x = 0; x < mapWidth; x++) {
-    //            float amplitude = 1f;
-    //            float frequency = 1f;
-    //            float noiseHeight = 0f;
+                for (int i = 0; i < octaves; i++) {
+                    float sampleX = (float)x / scale * frequency + seed;
+                    float sampleY = (float)y / scale * frequency + seed;
 
-    //            for (int i = 0; i < octaves; i++) {
-    //                float sampleX = (float)x / scale * frequency + seed;
-    //                float sampleY = (float)y / scale * frequency + seed;
+                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2f - 1f;
+                    noiseHeight += perlinValue * amplitude;
 
-    //                float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2f - 1f;
-    //                noiseHeight += perlinValue * amplitude;
+                    amplitude *= persistence;
+                    frequency *= lacunarity;
+                }
 
-    //                amplitude *= persistence;
-    //                frequency *= lacunarity;
-    //            }
+                noiseMap[x, y] = noiseHeight;
+            }
+        }
 
-    //            noiseMap[x, y] = noiseHeight;
-    //        }
-    //    }
-
-    //    return noiseMap;
-    //}
+        return noiseMap;
+    }
     private void spreadBiome(int x, int y, biome biomeToSpread, List<int> terrainToChange, int chance, int strength) {
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
@@ -604,8 +552,7 @@ public class generation : MonoBehaviour {
             spreadBiome(x, y - 1, biomeToSpread, terrainToChange, chance - strength, strength);
         }
     }
-    private void spreadTerrain(int x, int y, terrain terrainToSpread, List<int> terrainToChange, int chance, int strength, int side, bool check)
-    {
+    private void spreadTerrain(int x, int y, terrain terrainToSpread, List<int> terrainToChange, int chance, int strength, int side, bool check) {
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
         if (check == true)
@@ -616,68 +563,57 @@ public class generation : MonoBehaviour {
             gameMap[x, y].terrainType = terrainToSpread;
         //else return;
         int sideStrength = Mathf.FloorToInt(strength * 1.1f);
-        if (Random.Range(0, 100) < chance)
-        {
+        if (Random.Range(0, 100) < chance) {
             //all
-            if (side == -1)
-            {
+            if (side == -1) {
                 spreadTerrain(x + 1, y, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
                 spreadTerrain(x - 1, y, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
                 spreadTerrain(x, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
                 spreadTerrain(x, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, -1, true);
             }
             //up
-            if (side == 0)
-            {
+            if (side == 0) {
                 spreadTerrain(x, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x, y + 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //up-right
-            else if (side == 1)
-            {
+            else if (side == 1) {
                 spreadTerrain(x + 1, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x + 1, y + 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //right
-            else if (side == 2)
-            {
+            else if (side == 2) {
                 spreadTerrain(x + 1, y, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x + 1, y, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //right-down
-            else if (side == 3)
-            {
+            else if (side == 3) {
                 spreadTerrain(x + 1, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x + 1, y - 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //down
-            else if (side == 4)
-            {
+            else if (side == 4) {
                 spreadTerrain(x, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x, y - 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //down-left
-            else if (side == 5)
-            {
+            else if (side == 5) {
                 spreadTerrain(x - 1, y - 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x - 1, y - 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //left
-            else if (side == 6)
-            {
+            else if (side == 6) {
                 spreadTerrain(x - 1, y, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x - 1, y, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
             //left-up
-            else if (side == 7)
-            {
+            else if (side == 7) {
                 spreadTerrain(x - 1, y + 1, terrainToSpread, terrainToChange, chance - strength, strength, side, true);
                 spreadTerrain(x - 1, y + 1, terrainToSpread, terrainToChange, chance - strength, sideStrength, -1, false);
             }
         }
     }
-    private void spreadMountainChain(int x, int y, int side, int length, int offset)
-    {
+    private void spreadMountainChain(int x, int y, int side, int length, int offset) {
         if (length == 0) return;
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
@@ -690,54 +626,46 @@ public class generation : MonoBehaviour {
         int oppositeSide = side - 4;
         if (oppositeSide < 0) oppositeSide += 8;
 
-        if (gameMap[x, y].terrainType == terrain.Plain)
-        {
+        if (gameMap[x, y].terrainType == terrain.Plain) {
             spreadTerrain(x, y, terrain.Mountain, new List<int>() { (int)terrain.Plain }, 160, 30, oppositeSide, true);
         }
         else return;
 
         //up
-        if (newSide == 0)
-        {
+        if (newSide == 0) {
             spreadMountainChain(x, y + offset, newSide, length - 1, offset);
         }
         //up-right
-        else if (newSide == 1)
-        {
+        else if (newSide == 1) {
             spreadMountainChain(x + offset, y + offset, newSide, length - 1, offset);
         }
         //right
-        else if (newSide == 2)
-        {
+        else if (newSide == 2) {
             spreadMountainChain(x + offset, y, newSide, length - 1, offset);
         }
         //right-down
-        else if (newSide == 3)
-        {
+        else if (newSide == 3) {
             spreadMountainChain(x + offset, y - offset, newSide, length - 1, offset);
         }
         //down
-        else if (newSide == 4)
-        {
+        else if (newSide == 4) {
             spreadMountainChain(x, y - offset, newSide, length - 1, offset);
         }
         //down-left
-        else if (newSide == 5)
-        {
+        else if (newSide == 5) {
             spreadMountainChain(x - offset, y - offset, newSide, length - 1, offset);
         }
         //left
-        else if (newSide == 6)
-        {
+        else if (newSide == 6) {
             spreadMountainChain(x - offset, y, newSide, length - 1, offset);
         }
         //left-up
-        else if (newSide == 7)
-        {
+        else if (newSide == 7) {
             spreadMountainChain(x - offset, y + offset, newSide, length - 1, offset);
         }
 
     }
+
     public void paint_terrain() {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
@@ -757,13 +685,11 @@ public class generation : MonoBehaviour {
                     SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.MountainTop, new Vector3Int(x, y, 0));
             }
         }
-    }   
-    public void paint_ClimateZones()
-    {
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
+        MapTexture.Apply();
+    }
+    public void paint_ClimateZones() {
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].climateType == climate.Polar)
                     SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Polar, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].climateType == climate.Cold)
@@ -776,13 +702,11 @@ public class generation : MonoBehaviour {
                     SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Tropical, new Vector3Int(x, y, 0));
             }
         }
+        MapTexture.Apply();
     }
-    public void paint_moisture()
-    {
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
+    public void paint_moisture() {
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].moistureType == moisture.Highest)
                     SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.Highest, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].moistureType == moisture.High)
@@ -795,13 +719,11 @@ public class generation : MonoBehaviour {
                     SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.Lowest, new Vector3Int(x, y, 0));
             }
         }
+        MapTexture.Apply();
     }
-    public void paint_biomes()
-    {
-        for (int x = 0; x < mapWidth; x++)
-        {
-            for (int y = 0; y < mapHeight; y++)
-            {
+    public void paint_biomes() {
+        for (int x = 0; x < mapWidth; x++) {
+            for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].biomeType == biome.Ice)
                     SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Ice, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.SnowWasteland)
@@ -830,11 +752,12 @@ public class generation : MonoBehaviour {
                     SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.ColdOcean, new Vector3Int(x, y, 0));
             }
         }
+        MapTexture.Apply();
     }
     public void paint_ready() {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
-                
+
             }
         }
     }
