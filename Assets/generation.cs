@@ -1,55 +1,10 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using UnityEngine.UIElements;
-using UnityEngine.Sprites;
-using UnityEngine.Rendering;
-using Unity.VisualScripting;
 using TinkerWorX.AccidentalNoiseLibrary;
+using Unity.Collections.LowLevel.Unsafe;
 
-enum terrain {
-    None,
-    DeepOcean,
-    Ocean,
-    Beach,
-    Plain,
-    Hills,
-    Mountain,
-    MountainTop
-}
-enum climate {
-    None,
-    Polar,
-    Cold,
-    Temperate,
-    Subtropical,
-    Tropcial,
-}
-public enum moisture {
-    None,
-    Lowest,
-    Low,
-    Medium,
-    High,
-    Highest,
-}
-enum biome {
-    None,
-    Ice,
-    SnowWasteland,
-    Tundra,
-    BorealForest,
-    Grassland,
-    TemperateForest,
-    SeasonalForest,
-    Savanna,
-    Desert,
-    Rainforest,
-    WarmOcean,
-    TemperateOcean,
-    ColdOcean,
-}
+
 static class gameColors {
     public static class terrainColors {
         public static Color DeepOcean = new Color(68 / 255f, 139 / 255f, 237 / 255f, 1);
@@ -94,23 +49,6 @@ static class gameColors {
     }
 }
 
-class gameTile {
-    public terrain terrainType { get; set; }
-    public biome biomeType { get; set; }
-    public climate climateType { get; set; }
-    public moisture moistureType { get; set; }
-    public Tile tile { get; set; }
-
-    public gameTile() {
-        terrainType = terrain.None;
-        biomeType = biome.None;
-        climateType = climate.None;
-        moistureType = moisture.None;
-        tile = (Tile)ScriptableObject.CreateInstance("Tile");
-        tile.flags = TileFlags.None;
-    }
-}
-
 public class generation : MonoBehaviour {
     private gameTile[,] gameMap;
 
@@ -123,7 +61,6 @@ public class generation : MonoBehaviour {
 
     [Header("Generation settings")]
     [SerializeField]
-    
     int mapHeight = 256;
     [SerializeField]
     int mapWidth = 256;
@@ -139,8 +76,8 @@ public class generation : MonoBehaviour {
     int moistureOctaves = 4;
     [SerializeField]
     double moistureFrequency = 3.0;
-    [SerializeField]
-    Sprite square = null;
+    //[SerializeField]
+    //Sprite square = null;
 
     [Header("Terrain settings")]
     [SerializeField]
@@ -162,21 +99,36 @@ public class generation : MonoBehaviour {
     [SerializeField]
     float SubtropicalValue = 0.85f;
     [SerializeField]
-    float TemperateValue = 0.65f;
+    float TemperateValue = 0.53f;
     [SerializeField]
-    float ColdValue = 0.48f;
+    float ColdValue = 0.463f;
 
     [Header("Moisture settings")]
     [SerializeField]
-    float HighestValue = 0.9f;
+    float HighestValue = 0.44f;
     [SerializeField]
-    float HighValue = 0.62f;
+    float HighValue = 0.34f;
     [SerializeField]
-    float MediumValue = 0.39f;
+    float MediumValue = 0.23f;
     [SerializeField]
-    float LowValue = 0.21f;
+    float LowValue = 0.13f;
 
-    //New noise map generation
+    [Header("River generation")]
+    [SerializeField]
+    float spreadValue = 400f;
+    [SerializeField]
+    int RiverCount = 10;
+    [SerializeField]
+    float MinRiverHeight = 0.3f;
+    [SerializeField]
+    int MaxRiverAttempts = 25;
+    [SerializeField]
+    int MinRiverTurns = 5;
+    [SerializeField]
+    int MinRiverLength = 20;
+    [SerializeField]
+    int MaxRiverIntersections = 2;
+
     [Header("New noise map generation settings")]
     [SerializeField]
     public float scale = 20f;
@@ -189,19 +141,48 @@ public class generation : MonoBehaviour {
     [SerializeField]
     public float lacunarity = 2f;
 
+    [SerializeField]
+    UnityEngine.UI.Text textbox;
+
     Texture2D MapTexture;
     ImplicitFractal terrainFractal = null;
     ImplicitFractal tempFractal = null;
     ImplicitFractal moistureFractal = null;
     ImplicitGradient tempGradient = null;
 
+    List<gameTile> Waters = new List<gameTile>();
+    List<gameTile> Lands = new List<gameTile>();
+
+    List<River> Rivers = new List<River>();
+    List<RiverGroup> RiverGroups = new List<RiverGroup>();
+
     // Start is called before the first frame update
     void Start() {
         Random.InitState(Time.frameCount);
-        gameMap = new gameTile[mapWidth, mapHeight];
+        
         colorMap = GetComponent<Tilemap>();
         Initialize();
         generateMap();
+    }
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            generateMap();
+        }
+        if (Input.GetMouseButtonDown(1))
+        {
+            string text = "";
+            Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            int x = Mathf.FloorToInt(pos.x * 2);
+            int y = Mathf.FloorToInt(pos.y * 2);
+            text += Mathf.FloorToInt(gameMap[x, y].terrainValue * 1000) / 1000f;
+            text += "; ";
+            text += Mathf.FloorToInt(gameMap[x, y].climateValue * 1000) / 1000f;
+            text += "; ";
+            text += Mathf.FloorToInt(gameMap[x, y].moistureValue * 1000) / 1000f;
+            textbox.text = text;
+        }
     }
     private void generateMap() {
 
@@ -210,13 +191,34 @@ public class generation : MonoBehaviour {
         terrainFractal.Octaves = TerrainOctaves;
         terrainFractal.Frequency = TerrainFrequency;
 
+        //Map init
+        gameMap = new gameTile[mapWidth, mapHeight];
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                gameMap[x, y] = new gameTile();
+                gameMap[x, y].x = x;
+                gameMap[x, y].y = y;
+            }
+        }
+        for (int x = 0; x < mapWidth; x++)
+        {
+            for (int y = 0; y < mapHeight; y++)
+            {
+                gameMap[x, y].Top = gameMap[x, (y + 1) % mapHeight];
+                gameMap[x, y].Bottom = gameMap[x, Mathf.Abs((y - 1) % mapHeight)];
+                gameMap[x, y].Right = gameMap[(x + 1) % mapWidth, y];
+                gameMap[x, y].Left = gameMap[Mathf.Abs((x - 1) % mapWidth), y];
+            }
+        }
+
         //Terrain types
         terrainFractal.Seed = Random.Range(0, int.MaxValue);
         generateNoiseMap(new float[] { 1 }, terrainFractal);
         //noiseMap = GenerateNoiseMapV2();
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
-                gameMap[x, y] = new gameTile();
                 if (noiseMap[x, y] > MountainTopValue) {
                     gameMap[x, y].terrainType = terrain.MountainTop;
                 }
@@ -234,12 +236,19 @@ public class generation : MonoBehaviour {
                 }
                 else if (noiseMap[x, y] > OceanValue) {
                     gameMap[x, y].terrainType = terrain.Ocean;
+                    gameMap[x, y].Collidable = false;
                 }
                 else {
                     gameMap[x, y].terrainType = terrain.DeepOcean;
+                    gameMap[x, y].Collidable = false;
                 }
+                gameMap[x, y].terrainValue = noiseMap[x, y];
             }
         }
+
+        generateRivers();
+        BuildRiverGroups();
+        DigRiverGroups();
 
         //Climate Zones
         tempFractal.Seed = Random.Range(0, int.MaxValue);
@@ -262,35 +271,58 @@ public class generation : MonoBehaviour {
                 else {
                     gameMap[x, y].climateType = climate.Polar;
                 }
+                gameMap[x, y].climateValue = noiseMap[x, y];
             }
         }
 
         //Moisture
         generateNoiseMap(new float[] { 1 }, moistureFractal);
-        //noiseMap = GenerateNoiseMapV2();
-
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
                 //adjust value according to climate
-                if (gameMap[x, y].climateType == climate.Cold) {
-                    noiseMap[x, y] -= 0.2f * ColdValue;
+                if (gameMap[x, y].climateType == climate.Temperate)
+                {
+                    noiseMap[x, y] -= 0.07f;
                 }
-                else if (gameMap[x, y].climateType == climate.Polar) {
-                    noiseMap[x, y] += 0.55f * ColdValue;
+                else if(gameMap[x, y].climateType == climate.Cold)
+                {
+                    noiseMap[x, y] -= 0.12f;
+                }
+                else if (gameMap[x, y].climateType == climate.Polar)
+                {
+                    noiseMap[x, y] -= 0.21f;
+                }
+                
+                //adjust value according to terrain
+                if (gameMap[x, y].terrainType == terrain.DeepOcean)
+                {
+                    if (noiseMap[x, y] < 0.13f)
+                        noiseMap[x, y] += 0.37f;
+
+                    if (noiseMap[x, y] < 0.23f)
+                        noiseMap[x, y] += 0.25f;
+
+                    if (noiseMap[x, y] < 0.35f)
+                        noiseMap[x, y] += 0.17f;
+
+                    if (noiseMap[x, y] < 0.45f)
+                        noiseMap[x, y] += 0.11f;
+                }
+                else if (gameMap[x, y].terrainType == terrain.Ocean)
+                {
+                    if (noiseMap[x, y] < 0.13f)
+                        noiseMap[x, y] += 0.25f;
+
+                    if (noiseMap[x, y] < 0.23f)
+                        noiseMap[x, y] += 0.13f;
+
+                    if (noiseMap[x, y] < 0.35f)
+                        noiseMap[x, y] += 0.05f;
                 }
 
-                //adjust value according to terrain
-                if (gameMap[x, y].terrainType == terrain.DeepOcean) {
-                    noiseMap[x, y] += 8f * OceanValue;
-                }
-                else if (gameMap[x, y].terrainType == terrain.Ocean) {
-                    noiseMap[x, y] += 3f * OceanValue;
-                }
-                else if (gameMap[x, y].terrainType == terrain.Beach) {
-                    noiseMap[x, y] += 1f * BeachValue;
-                }
-                else if (gameMap[x, y].terrainType == terrain.Plain) {
-                    noiseMap[x, y] += 0.25f * PlainsValue;
+                if (gameMap[x, y].terrainType == terrain.River)
+                {
+                    spreadMoisture(x, y, 130, 10);
                 }
 
                 //Select moisture level
@@ -309,6 +341,7 @@ public class generation : MonoBehaviour {
                 else {
                     gameMap[x, y].moistureType = moisture.Lowest;
                 }
+                gameMap[x, y].moistureValue = noiseMap[x, y];
             }
         }
 
@@ -415,31 +448,19 @@ public class generation : MonoBehaviour {
                 }
             }
         }
-        //paint_moisture();
-        //paint_ClimateZones();
+
         paint_terrain();
-        //MapTexture.Apply();
         MapTexture.filterMode = FilterMode.Point;
         MapObject.GetComponent<SpriteRenderer>().sprite = Sprite.Create(MapTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
         MapObject.transform.localScale = new Vector2(50, 50);
     }
-    private void SetTileColour(Tile tile, Color colour, Vector3Int position) {
-
+    private void SetTileColour(Color colour, Vector3Int position) {
         MapTexture.SetPixel(position.x, position.y, colour);
-        //tile = (Tile)ScriptableObject.CreateInstance("Tile");
-        //tile.sprite = square;
-        //tile.color = colour;
-        //colorMap.SetTile(position, tile);
-    }
-    void Update() {
-        if (Input.GetKeyDown(KeyCode.E)) {
-            generateMap();
-        }
     }
     private void Initialize() {
 
         //terrain
-        terrainFractal = new ImplicitFractal(FractalType.Billow,
+        terrainFractal = new ImplicitFractal(FractalType.Multi,
                              BasisType.Simplex,
                              InterpolationType.Quintic);
         terrainFractal.Octaves = TerrainOctaves;
@@ -536,20 +557,468 @@ public class generation : MonoBehaviour {
 
         return noiseMap;
     }
-    private void spreadBiome(int x, int y, biome biomeToSpread, List<int> terrainToChange, int chance, int strength) {
+    private void generateRivers()
+    {
+        int attempts = 0;
+        int rivercount = RiverCount;
+        Rivers = new List<River>();
+
+        while (rivercount > 0 && attempts < MaxRiverAttempts)
+        {
+
+            int x = UnityEngine.Random.Range(0, mapWidth);
+            int y = UnityEngine.Random.Range(0, mapHeight);
+            gameTile tile = gameMap[x, y];
+
+            if (tile.Collidable == false) continue;
+            if (tile.Rivers.Count > 0) continue;
+
+            if (tile.terrainValue > MinRiverHeight)
+            {
+                River river = new River(rivercount);
+
+                river.CurrentDirection = tile.GetLowestNeighbor();
+
+                FindPathToWater(tile, river.CurrentDirection, ref river);
+
+                // Check river
+                if (river.TurnCount < MinRiverTurns || river.Tiles.Count < MinRiverLength || river.Intersections > MaxRiverIntersections)
+                {
+                    for (int i = 0; i < river.Tiles.Count; i++)
+                    {
+                        gameTile t = river.Tiles[i];
+                        t.Rivers.Remove(river);
+                    }
+                }
+                else if (river.Tiles.Count >= MinRiverLength)
+                {
+                    //ѕроверка пройдена - добавл€ем реку в список
+                    Rivers.Add(river);
+                    tile.Rivers.Add(river);
+                    rivercount--;
+                }
+            }
+            attempts++;
+        }
+    }
+    private void BuildRiverGroups()
+    {
+        //loop each tile, checking if it belongs to multiple rivers
+        for (var x = 0; x < mapWidth; x++)
+        {
+            for (var y = 0; y < mapHeight; y++)
+            {
+                gameTile t = gameMap[x, y];
+
+                if (t.Rivers.Count > 1)
+                {
+                    // multiple rivers == intersection
+                    RiverGroup group = null;
+
+                    // Does a rivergroup already exist for this group?
+                    for (int n = 0; n < t.Rivers.Count; n++)
+                    {
+                        River tileriver = t.Rivers[n];
+                        for (int i = 0; i < RiverGroups.Count; i++)
+                        {
+                            for (int j = 0; j < RiverGroups[i].Rivers.Count; j++)
+                            {
+                                River river = RiverGroups[i].Rivers[j];
+                                if (river.ID == tileriver.ID)
+                                {
+                                    group = RiverGroups[i];
+                                }
+                                if (group != null) break;
+                            }
+                            if (group != null) break;
+                        }
+                        if (group != null) break;
+                    }
+
+                    // existing group found -- add to it
+                    if (group != null)
+                    {
+                        for (int n = 0; n < t.Rivers.Count; n++)
+                        {
+                            if (!group.Rivers.Contains(t.Rivers[n]))
+                                group.Rivers.Add(t.Rivers[n]);
+                        }
+                    }
+                    else   //No existing group found - create a new one
+                    {
+                        group = new RiverGroup();
+                        for (int n = 0; n < t.Rivers.Count; n++)
+                        {
+                            group.Rivers.Add(t.Rivers[n]);
+                        }
+                        RiverGroups.Add(group);
+                    }
+                }
+            }
+        }
+    }
+    private void FindPathToWater(gameTile tile, Direction direction, ref River river)
+	{
+		if (tile.Rivers.Contains (river))
+			return;
+
+		// check if there is already a river on this tile
+		if (tile.Rivers.Count > 0)
+			river.Intersections++;
+
+		river.addTile(tile);
+
+		// get neighbors
+		gameTile left = tile.Left;
+        gameTile right = tile.Right;
+        gameTile top = tile.Top;
+        gameTile bottom = tile.Bottom;
+		
+		float leftValue = int.MaxValue;
+		float rightValue = int.MaxValue;
+		float topValue = int.MaxValue;
+		float bottomValue = int.MaxValue;
+		
+		// query height values of neighbors
+		if (left.getRiverNeighborCount(river) < 2 && !river.Tiles.Contains(left)) 
+			leftValue = left.terrainValue;
+		if (right.getRiverNeighborCount(river) < 2 && !river.Tiles.Contains(right)) 
+			rightValue = right.terrainValue;
+		if (top.getRiverNeighborCount(river) < 2 && !river.Tiles.Contains(top)) 
+			topValue = top.terrainValue;
+		if (bottom.getRiverNeighborCount(river) < 2 && !river.Tiles.Contains(bottom)) 
+			bottomValue = bottom.terrainValue;
+		
+		// if neighbor is existing river that is not this one, flow into it
+		if (bottom.Rivers.Count == 0 && !bottom.Collidable)
+			bottomValue = 0;
+		if (top.Rivers.Count == 0 && !top.Collidable)
+			topValue = 0;
+		if (left.Rivers.Count == 0 && !left.Collidable)
+			leftValue = 0;
+		if (right.Rivers.Count == 0 && !right.Collidable)
+			rightValue = 0;
+		
+		// override flow direction if a tile is significantly lower
+		if (direction == Direction.Left)
+			if (Mathf.Abs (rightValue - leftValue) < 0.1f)
+				rightValue = int.MaxValue;
+		if (direction == Direction.Right)
+			if (Mathf.Abs (rightValue - leftValue) < 0.1f)
+				leftValue = int.MaxValue;
+		if (direction == Direction.Top)
+			if (Mathf.Abs (topValue - bottomValue) < 0.1f)
+				bottomValue = int.MaxValue;
+		if (direction == Direction.Bottom)
+			if (Mathf.Abs (topValue - bottomValue) < 0.1f)
+				topValue = int.MaxValue;
+		
+		// find mininum
+		float min = Mathf.Min (Mathf.Min (Mathf.Min (leftValue, rightValue), topValue), bottomValue);
+		
+		// if no minimum found - exit
+		if (min == int.MaxValue)
+			return;
+		
+		//Move to next neighbor
+		if (min == leftValue) {
+			if (left.Collidable)
+			{
+				if (river.CurrentDirection != Direction.Left){
+					river.TurnCount++;
+					river.CurrentDirection = Direction.Left;
+				}
+				FindPathToWater (left, direction, ref river);
+			}
+		} else if (min == rightValue) {
+			if (right.Collidable)
+			{
+				if (river.CurrentDirection != Direction.Right){
+					river.TurnCount++;
+					river.CurrentDirection = Direction.Right;
+				}
+				FindPathToWater (right, direction, ref river);
+			}
+		} else if (min == bottomValue) {
+			if (bottom.Collidable)
+			{
+				if (river.CurrentDirection != Direction.Bottom){
+					river.TurnCount++;
+					river.CurrentDirection = Direction.Bottom;
+				}
+				FindPathToWater (bottom, direction, ref river);
+			}
+		} else if (min == topValue) {
+			if (top.Collidable)
+			{
+				if (river.CurrentDirection != Direction.Top){
+					river.TurnCount++;
+					river.CurrentDirection = Direction.Top;
+				}
+				FindPathToWater (top, direction, ref river);
+			}
+		}
+	}
+    private void DigRiver(River river, River parent)
+    {
+        int intersectionID = 0;
+        int intersectionSize = 0;
+
+        // determine point of intersection
+        for (int i = 0; i < river.Tiles.Count; i++)
+        {
+            gameTile t1 = river.Tiles[i];
+            for (int j = 0; j < parent.Tiles.Count; j++)
+            {
+                gameTile t2 = parent.Tiles[j];
+                if (t1.Equals(t2))
+                {
+                    intersectionID = i;
+                    intersectionSize = t2.RiverSize;
+                }
+            }
+        }
+
+        int counter = 0;
+        int intersectionCount = river.Tiles.Count - intersectionID;
+        int size = UnityEngine.Random.Range(intersectionSize, 5);
+        river.Length = river.Tiles.Count;
+
+        // randomize size change
+        int two = river.Length / 2;
+        int three = two / 2;
+        int four = three / 2;
+        int five = four / 2;
+
+        int twomin = two / 3;
+        int threemin = three / 3;
+        int fourmin = four / 3;
+        int fivemin = five / 3;
+
+        // randomize length of each size
+        int count1 = UnityEngine.Random.Range(fivemin, five);
+        if (size < 4)
+        {
+            count1 = 0;
+        }
+        int count2 = count1 + UnityEngine.Random.Range(fourmin, four);
+        if (size < 3)
+        {
+            count2 = 0;
+            count1 = 0;
+        }
+        int count3 = count2 + UnityEngine.Random.Range(threemin, three);
+        if (size < 2)
+        {
+            count3 = 0;
+            count2 = 0;
+            count1 = 0;
+        }
+        int count4 = count3 + UnityEngine.Random.Range(twomin, two);
+
+        // Make sure we are not digging past the river path
+        if (count4 > river.Length)
+        {
+            int extra = count4 - river.Length;
+            while (extra > 0)
+            {
+                if (count1 > 0) { count1--; count2--; count3--; count4--; extra--; }
+                else if (count2 > 0) { count2--; count3--; count4--; extra--; }
+                else if (count3 > 0) { count3--; count4--; extra--; }
+                else if (count4 > 0) { count4--; extra--; }
+            }
+        }
+
+        // adjust size of river at intersection point
+        if (intersectionSize == 1)
+        {
+            count4 = intersectionCount;
+            count1 = 0;
+            count2 = 0;
+            count3 = 0;
+        }
+        else if (intersectionSize == 2)
+        {
+            count3 = intersectionCount;
+            count1 = 0;
+            count2 = 0;
+        }
+        else if (intersectionSize == 3)
+        {
+            count2 = intersectionCount;
+            count1 = 0;
+        }
+        else if (intersectionSize == 4)
+        {
+            count1 = intersectionCount;
+        }
+        else
+        {
+            count1 = 0;
+            count2 = 0;
+            count3 = 0;
+            count4 = 0;
+        }
+
+        // dig out the river
+        for (int i = river.Tiles.Count - 1; i >= 0; i--)
+        {
+
+            gameTile t = river.Tiles[i];
+
+            if (counter < count1)
+            {
+                t.DigRiver(river, 4);
+            }
+            else if (counter < count2)
+            {
+                t.DigRiver(river, 3);
+            }
+            else if (counter < count3)
+            {
+                t.DigRiver(river, 2);
+            }
+            else if (counter < count4)
+            {
+                t.DigRiver(river, 1);
+            }
+            else
+            {
+                t.DigRiver(river, 0);
+            }
+            counter++;
+        }
+    }
+    private void DigRiver(River river)
+    {
+        int counter = 0;
+
+        // How wide are we digging this river?
+        int size = UnityEngine.Random.Range(1, 5);
+        river.Length = river.Tiles.Count;
+
+        // randomize size change
+        int two = river.Length / 2;
+        int three = two / 2;
+        int four = three / 2;
+        int five = four / 2;
+
+        int twomin = two / 3;
+        int threemin = three / 3;
+        int fourmin = four / 3;
+        int fivemin = five / 3;
+
+        // randomize lenght of each size
+        int count1 = UnityEngine.Random.Range(fivemin, five);
+        if (size < 4)
+        {
+            count1 = 0;
+        }
+        int count2 = count1 + UnityEngine.Random.Range(fourmin, four);
+        if (size < 3)
+        {
+            count2 = 0;
+            count1 = 0;
+        }
+        int count3 = count2 + UnityEngine.Random.Range(threemin, three);
+        if (size < 2)
+        {
+            count3 = 0;
+            count2 = 0;
+            count1 = 0;
+        }
+        int count4 = count3 + UnityEngine.Random.Range(twomin, two);
+
+        // Make sure we are not digging past the river path
+        if (count4 > river.Length)
+        {
+            int extra = count4 - river.Length;
+            while (extra > 0)
+            {
+                if (count1 > 0) { count1--; count2--; count3--; count4--; extra--; }
+                else if (count2 > 0) { count2--; count3--; count4--; extra--; }
+                else if (count3 > 0) { count3--; count4--; extra--; }
+                else if (count4 > 0) { count4--; extra--; }
+            }
+        }
+
+        // Dig it out
+        for (int i = river.Tiles.Count - 1; i >= 0; i--)
+        {
+            gameTile t = river.Tiles[i];
+
+            if (counter < count1)
+            {
+                t.DigRiver(river, 4);
+            }
+            else if (counter < count2)
+            {
+                t.DigRiver(river, 3);
+            }
+            else if (counter < count3)
+            {
+                t.DigRiver(river, 2);
+            }
+            else if (counter < count4)
+            {
+                t.DigRiver(river, 1);
+            }
+            else
+            {
+                t.DigRiver(river, 0);
+            }
+            counter++;
+        }
+    }
+    private void DigRiverGroups()
+    {
+        for (int i = 0; i < RiverGroups.Count; i++)
+        {
+
+            RiverGroup group = RiverGroups[i];
+            River longest = null;
+
+            //Find longest river in this group
+            for (int j = 0; j < group.Rivers.Count; j++)
+            {
+                River river = group.Rivers[j];
+                if (longest == null)
+                    longest = river;
+                else if (longest.Tiles.Count < river.Tiles.Count)
+                    longest = river;
+            }
+
+            if (longest != null)
+            {
+                //Dig out longest path first
+                DigRiver(longest);
+
+                for (int j = 0; j < group.Rivers.Count; j++)
+                {
+                    River river = group.Rivers[j];
+                    if (river != longest)
+                    {
+                        DigRiver(river, longest);
+                    }
+                }
+            }
+        }
+    }
+    private void spreadMoisture(int x, int y, int chance, int strength) {
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
-        if (gameMap[x, y].biomeType == biomeToSpread) return;
 
-        int val = (int)gameMap[x, y].terrainType;
-        if (terrainToChange.Contains(val) == true)
-            gameMap[x, y].biomeType = biomeToSpread;
-        else return;
+        else
+        {
+            int value = UnityEngine.Random.Range(5, 9) * chance / strength;
+            noiseMap[x, y] += value / 130000;
+        }
+
         if (Random.Range(0, 100) < chance) {
-            spreadBiome(x + 1, y, biomeToSpread, terrainToChange, chance - strength, strength);
-            spreadBiome(x, y + 1, biomeToSpread, terrainToChange, chance - strength, strength);
-            spreadBiome(x - 1, y, biomeToSpread, terrainToChange, chance - strength, strength);
-            spreadBiome(x, y - 1, biomeToSpread, terrainToChange, chance - strength, strength);
+            spreadMoisture(x + 1, y, chance - strength, strength);
+            spreadMoisture(x, y + 1, chance - strength, strength);
+            spreadMoisture(x - 1, y, chance - strength, strength);
+            spreadMoisture(x, y - 1, chance - strength, strength);
         }
     }
     private void spreadTerrain(int x, int y, terrain terrainToSpread, List<int> terrainToChange, int chance, int strength, int side, bool check) {
@@ -613,76 +1082,26 @@ public class generation : MonoBehaviour {
             }
         }
     }
-    private void spreadMountainChain(int x, int y, int side, int length, int offset) {
-        if (length == 0) return;
-        if (x < 0 || y < 0) return;
-        if (x >= mapWidth || y >= mapHeight) return;
-
-        if (gameMap[x, y].terrainType == terrain.Mountain)
-            gameMap[x, y].terrainType = terrain.Plain;
-
-        int newSide = Random.Range(-1, 2) + side;
-        if (newSide < 0) newSide += 8;
-        int oppositeSide = side - 4;
-        if (oppositeSide < 0) oppositeSide += 8;
-
-        if (gameMap[x, y].terrainType == terrain.Plain) {
-            spreadTerrain(x, y, terrain.Mountain, new List<int>() { (int)terrain.Plain }, 160, 30, oppositeSide, true);
-        }
-        else return;
-
-        //up
-        if (newSide == 0) {
-            spreadMountainChain(x, y + offset, newSide, length - 1, offset);
-        }
-        //up-right
-        else if (newSide == 1) {
-            spreadMountainChain(x + offset, y + offset, newSide, length - 1, offset);
-        }
-        //right
-        else if (newSide == 2) {
-            spreadMountainChain(x + offset, y, newSide, length - 1, offset);
-        }
-        //right-down
-        else if (newSide == 3) {
-            spreadMountainChain(x + offset, y - offset, newSide, length - 1, offset);
-        }
-        //down
-        else if (newSide == 4) {
-            spreadMountainChain(x, y - offset, newSide, length - 1, offset);
-        }
-        //down-left
-        else if (newSide == 5) {
-            spreadMountainChain(x - offset, y - offset, newSide, length - 1, offset);
-        }
-        //left
-        else if (newSide == 6) {
-            spreadMountainChain(x - offset, y, newSide, length - 1, offset);
-        }
-        //left-up
-        else if (newSide == 7) {
-            spreadMountainChain(x - offset, y + offset, newSide, length - 1, offset);
-        }
-
-    }
 
     public void paint_terrain() {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].terrainType == terrain.DeepOcean)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.DeepOcean, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.DeepOcean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Ocean)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.Ocean, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.Ocean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Beach)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.Beach, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.Beach, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Plain)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.Plain, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.Plain, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].terrainType == terrain.River)
+                    SetTileColour(gameColors.terrainColors.Ocean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Hills)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.Hills, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.Hills, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.Mountain)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.Mountain, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.Mountain, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].terrainType == terrain.MountainTop)
-                    SetTileColour(gameMap[x, y].tile, gameColors.terrainColors.MountainTop, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.terrainColors.MountainTop, new Vector3Int(x, y, 0));
             }
         }
         MapTexture.Apply();
@@ -691,15 +1110,15 @@ public class generation : MonoBehaviour {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].climateType == climate.Polar)
-                    SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Polar, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.climateColors.Polar, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].climateType == climate.Cold)
-                    SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Cold, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.climateColors.Cold, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].climateType == climate.Temperate)
-                    SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Temperate, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.climateColors.Temperate, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].climateType == climate.Subtropical)
-                    SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Subtropical, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.climateColors.Subtropical, new Vector3Int(x, y, 0));
                 else
-                    SetTileColour(gameMap[x, y].tile, gameColors.climateColors.Tropical, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.climateColors.Tropical, new Vector3Int(x, y, 0));
             }
         }
         MapTexture.Apply();
@@ -708,15 +1127,15 @@ public class generation : MonoBehaviour {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].moistureType == moisture.Highest)
-                    SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.Highest, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.MoistureColors.Highest, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].moistureType == moisture.High)
-                    SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.High, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.MoistureColors.High, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].moistureType == moisture.Medium)
-                    SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.Medium, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.MoistureColors.Medium, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].moistureType == moisture.Low)
-                    SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.Low, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.MoistureColors.Low, new Vector3Int(x, y, 0));
                 else
-                    SetTileColour(gameMap[x, y].tile, gameColors.MoistureColors.Lowest, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.MoistureColors.Lowest, new Vector3Int(x, y, 0));
             }
         }
         MapTexture.Apply();
@@ -725,31 +1144,31 @@ public class generation : MonoBehaviour {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
                 if (gameMap[x, y].biomeType == biome.Ice)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Ice, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.Ice, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.SnowWasteland)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.SnowWasteland, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.SnowWasteland, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.Tundra)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Tundra, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.Tundra, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.BorealForest)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.BorealForest, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.BorealForest, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.Grassland)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Grassland, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.Grassland, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.TemperateForest)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.TemperateForest, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.TemperateForest, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.SeasonalForest)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.SeasonalForest, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.SeasonalForest, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.Savanna)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Savanna, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.Savanna, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.Desert)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Desert, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.Desert, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.Rainforest)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.Rainforest, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.Rainforest, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.WarmOcean)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.WarmOcean, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.WarmOcean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.TemperateOcean)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.TemperateOcean, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.TemperateOcean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.ColdOcean)
-                    SetTileColour(gameMap[x, y].tile, gameColors.BiomeColors.ColdOcean, new Vector3Int(x, y, 0));
+                    SetTileColour(gameColors.BiomeColors.ColdOcean, new Vector3Int(x, y, 0));
             }
         }
         MapTexture.Apply();
@@ -760,5 +1179,10 @@ public class generation : MonoBehaviour {
 
             }
         }
+    }
+    private int coordFix(int coord, int limit)
+    {
+        if (coord < limit) return coord;
+        else return Mathf.Abs(coord - limit);
     }
 }

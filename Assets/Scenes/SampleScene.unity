@@ -733,15 +733,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MapObject: {fileID: 242337549}
-  mapHeight: 512
-  mapWidth: 512
+  mapHeight: 256
+  mapWidth: 256
   TerrainOctaves: 6
-  TerrainFrequency: 3.75
+  TerrainFrequency: 1.75
   tempOctaves: 4
   tempFrequency: 3.25
   moistureOctaves: 4
   moistureFrequency: 3
-  square: {fileID: 7482667652216324306, guid: aa8b43f8995a92f4ebe32f463ba63fec, type: 3}
   MountainTopValue: 0.6375
   MountainValue: 0.52
   HillsValue: 0.42
@@ -750,17 +749,25 @@ MonoBehaviour:
   OceanValue: 0.15
   TropicalValue: 0.95
   SubtropicalValue: 0.85
-  TemperateValue: 0.65
-  ColdValue: 0.48
-  HighestValue: 0.9
-  HighValue: 0.62
-  MediumValue: 0.34
-  LowValue: 0.21
+  TemperateValue: 0.53
+  ColdValue: 0.463
+  HighestValue: 0.44
+  HighValue: 0.34
+  MediumValue: 0.23
+  LowValue: 0.13
+  spreadValue: 400
+  RiverCount: 10
+  MinRiverHeight: 0.3
+  MaxRiverAttempts: 25
+  MinRiverTurns: 5
+  MinRiverLength: 20
+  MaxRiverIntersections: 2
   scale: 20
-  seed: 10
+  seed: 0
   octaves: 6
   persistence: 0.5
   lacunarity: 2
+  textbox: {fileID: 0}
 --- !u!483693784 &668585661
 TilemapRenderer:
   m_ObjectHideFlags: 0
