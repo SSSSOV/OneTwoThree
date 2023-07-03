@@ -105,6 +105,8 @@ public class generation : MonoBehaviour {
 
     [Header("Moisture settings")]
     [SerializeField]
+    float RiverSpreadValue = 0.6f;
+    [SerializeField]
     float HighestValue = 0.44f;
     [SerializeField]
     float HighValue = 0.34f;
@@ -282,15 +284,15 @@ public class generation : MonoBehaviour {
                 //adjust value according to climate
                 if (gameMap[x, y].climateType == climate.Temperate)
                 {
-                    noiseMap[x, y] -= 0.07f;
+                    noiseMap[x, y] *= 0.85f;
                 }
                 else if(gameMap[x, y].climateType == climate.Cold)
                 {
-                    noiseMap[x, y] -= 0.12f;
+                    noiseMap[x, y] *= 0.75f;
                 }
                 else if (gameMap[x, y].climateType == climate.Polar)
                 {
-                    noiseMap[x, y] -= 0.21f;
+                    noiseMap[x, y] *= 0.45f;
                 }
                 
                 //adjust value according to terrain
@@ -308,13 +310,13 @@ public class generation : MonoBehaviour {
                     if (noiseMap[x, y] < 0.45f)
                         noiseMap[x, y] += 0.11f;
                 }
-                else if (gameMap[x, y].terrainType == terrain.Ocean)
+                else if (gameMap[x, y].terrainType == terrain.Ocean || gameMap[x, y].terrainType == terrain.River)
                 {
                     if (noiseMap[x, y] < 0.13f)
                         noiseMap[x, y] += 0.25f;
 
                     if (noiseMap[x, y] < 0.23f)
-                        noiseMap[x, y] += 0.13f;
+                        noiseMap[x, y] += 0.16f;
 
                     if (noiseMap[x, y] < 0.35f)
                         noiseMap[x, y] += 0.05f;
@@ -322,7 +324,7 @@ public class generation : MonoBehaviour {
 
                 if (gameMap[x, y].terrainType == terrain.River)
                 {
-                    spreadMoisture(x, y, 130, 10);
+                    spreadMoisture(x, y, 130, 30);
                 }
 
                 //Select moisture level
@@ -370,6 +372,12 @@ public class generation : MonoBehaviour {
                         gameMap[x, y].biomeType = biome.TemperateOcean;
                     }
                     else gameMap[x, y].biomeType = biome.ColdOcean;
+                }
+
+                //River
+                else if (gameMap[x, y].terrainType == terrain.River)
+                {
+                    gameMap[x, y].biomeType = biome.River;
                 }
 
                 //Plains, Hills, Mountains
@@ -1007,11 +1015,20 @@ public class generation : MonoBehaviour {
     private void spreadMoisture(int x, int y, int chance, int strength) {
         if (x < 0 || y < 0) return;
         if (x >= mapWidth || y >= mapHeight) return;
-
-        else
+        if (gameMap[x, y].terrainType != terrain.River)
         {
-            int value = UnityEngine.Random.Range(5, 9) * chance / strength;
-            noiseMap[x, y] += value / 130000;
+            if (gameMap[x, y].moistureType != moisture.Highest)
+                gameMap[x, y].moistureType += 1;
+            if (gameMap[x, y].moistureType == moisture.Lowest)
+                gameMap[x, y].moistureValue = 0.05f;
+            else if (gameMap[x, y].moistureType == moisture.Low)
+                gameMap[x, y].moistureValue = LowValue;
+            else if (gameMap[x, y].moistureType == moisture.Medium)
+                gameMap[x, y].moistureValue = MediumValue;
+            else if (gameMap[x, y].moistureType == moisture.High)
+                gameMap[x, y].moistureValue = HighValue;
+            else if (gameMap[x, y].moistureType == moisture.Highest)
+                gameMap[x, y].moistureValue = HighestValue;
         }
 
         if (Random.Range(0, 100) < chance) {
@@ -1163,6 +1180,8 @@ public class generation : MonoBehaviour {
                     SetTileColour(gameColors.BiomeColors.Desert, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.Rainforest)
                     SetTileColour(gameColors.BiomeColors.Rainforest, new Vector3Int(x, y, 0));
+                else if (gameMap[x, y].biomeType == biome.River)
+                    SetTileColour(gameColors.terrainColors.Ocean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.WarmOcean)
                     SetTileColour(gameColors.BiomeColors.WarmOcean, new Vector3Int(x, y, 0));
                 else if (gameMap[x, y].biomeType == biome.TemperateOcean)

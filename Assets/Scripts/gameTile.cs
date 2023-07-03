@@ -45,6 +45,7 @@ public enum biome
     Savanna,
     Desert,
     Rainforest,
+    River,
     WarmOcean,
     TemperateOcean,
     ColdOcean,
@@ -82,7 +83,6 @@ public class gameTile
     public bool Collidable;
 
     public bool FloodFilled;
-
     public gameTile()
     {
         terrainType = terrain.None;
@@ -92,7 +92,6 @@ public class gameTile
         Collidable = true;
         Rivers = new List<River>();
     }
-
     public void updateBitmask()
     {
         int count = 0;
@@ -108,7 +107,6 @@ public class gameTile
 
         bitmask = count;
     }
-
     public int getRiverNeighborCount(River river)
     {
         int count = 0;
@@ -145,14 +143,12 @@ public class gameTile
             Rivers.Add(river);
         }
     }
-
     private void SetRiverTile(River river)
     {
         setRiverPath(river);
         terrainType = terrain.River;
         Collidable = false;
     }
-
     public void DigRiver(River river, int size)
     {
         SetRiverTile(river);
