@@ -1099,7 +1099,6 @@ public class generation : MonoBehaviour {
             }
         }
     }
-
     public void paint_terrain() {
         for (int x = 0; x < mapWidth; x++) {
             for (int y = 0; y < mapHeight; y++) {
