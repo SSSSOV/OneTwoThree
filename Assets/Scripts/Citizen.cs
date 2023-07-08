@@ -6,8 +6,7 @@ public enum profession
 {
     None,
     farmer, 
-    lightWorker,
-    heavyWorker, 
+    worker,
     researcher,
     clerk,
 }
@@ -33,7 +32,7 @@ public class Citizen
     {
         origin = (profession)Random.Range(1, 6);
         job = profession.None;
-        basicYield = new BaseYield(1, 1, 1, 1);
+        basicYield = new BaseYield(-1, 1, 1, 1);
         happiness = 50;
     }
 
@@ -44,7 +43,7 @@ public class Citizen
         else if (value > 45) origin = par1.origin;
         else if (value > 0) origin = par2.origin;
         job = profession.None;
-        basicYield = new BaseYield(1, 1, 1, 1);
+        basicYield = new BaseYield(-1, 1, 1, 1);
         happiness = 50;
     }
 }
