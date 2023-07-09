@@ -1,85 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Xml;
 
 public enum prodCosts
 {
-    tier1 = 50,
-    tier2 = 300,
-    tier3 = 1250,
+    tier1 = 90,
+    tier2 = 600,
+    tier3 = 2850,
 }
 
-public enum bonusResources
-{
-    None,
-    //Food
-    //Cold
-    berries,
-    deer,
-    mushrooms,
-    //Temperate
-    wheat,
-    cattle,
-    wine,
-    //Subtropical
-    citrus,
-    bananas,
-    rice,
-    //Tropical
-    dates,
-    camel,
-    spices,
-    //Any
-    fish,
-    crabs,
-    seaweed,
-
-    //Production
-    //Any
-    stone,
-    marble, 
-    gypsum,
-    copper,
-    lead,
-    ironwood,
-
-    reefs,
-    corals,
-
-    //Science
-    //Any
-    tea,
-    mercury,
-    meteorite,
-
-    //Gold
-    //Any
-    olives,
-    salt,
-    gold, 
-    silver,
-    pearls,
-    diamonds,
-}
-
-public enum strategicResources
-{
-    None,
-    //Ancient
-    horses,
-    //Medieval
-    iron,
-    //Renaissance
-    niter,
-    //Industrial era
-    coal,
-    //Modern era
-    oil,
-    aluminum,
-    uranium,
-}
 public class Building
 {
+    public int id;
     public string name;
     public Sprite sprite;
     public BaseYield basicYield;
@@ -90,217 +23,59 @@ public class Building
     public List<Citizen> workingCitizens;
     public bool isBuilt = false;
 
-    public Building(string name, BaseYield basicYield, prodCosts tier, int productionOffset, int workingPlaces, profession profession, Sprite sprite)
+    public static List<Building> Buildings = new List<Building>();
+
+    public Building(int id, string name, string sprite, BaseYield basicYield, int tier, profession profession)
     {
+        this.id = id;
         this.name = name;
+        this.sprite = Resources.Load(sprite) as Sprite;
         this.basicYield = basicYield;
-        this.tier = (int)tier;
-        this.productionCost = (int)tier + productionOffset;
-        this.workingPlaces = workingPlaces;
+        switch (tier)
+        {
+            case 1: 
+                this.productionCost = (int)prodCosts.tier1;
+                break;
+            case 2:
+                this.productionCost = (int)prodCosts.tier2;
+                break;
+            case 3:
+                this.productionCost = (int)prodCosts.tier3;
+                break;
+            default:
+                this.productionCost = 0;
+                break;
+        }
+        this.workingPlaces = tier;
         this.profession = profession;
-        this.sprite = sprite;
     }
 
-    public Building(bonusResources resource)
+    static Building()
     {
-        //food t1
-        if (resource == bonusResources.berries)
-        {
-            name = "Berries farm";
-            //sprite = 
-            basicYield = new BaseYield(3, 0, 1, -1);
-            profession = profession.farmer;
-            tier = 1;
-        }
-        else if (resource == bonusResources.wheat)
-        {
-            name = "Wheat farm";
-            //sprite = 
-            basicYield = new BaseYield(3, 1, 0, -1);
-            tier = 1;
-            profession = profession.farmer;
-        }
-        else if (resource == bonusResources.rice)
-        {
-            name = "Rice farm";
-            //sprite = 
-            basicYield = new BaseYield(3, 1, 0, -1);
-            profession = profession.farmer;
-            tier = 1;
-        }
-        else if (resource == bonusResources.dates)
-        {
-            name = "Date farm";
-            //sprite = 
-            basicYield = new BaseYield(2, 1, 1, -1);
-            profession = profession.farmer;
-            tier = 1;
-        }
-        else if (resource == bonusResources.fish)
-        {
-            name = "Fishery";
-            //sprite = 
-            basicYield = new BaseYield(3, 0, 1, 0);
-            profession = profession.farmer;
-            tier = 1;
-        }
+        XmlDocument xDoc = new XmlDocument();
+        xDoc.Load("Buildings.xml");
+        XmlElement xRoot = xDoc.DocumentElement;
 
-        //food t2
-        else if (resource == bonusResources.deer)
+        if (xRoot != null)
         {
-            name = "Deer camp";
-            //sprite = 
-            basicYield = new BaseYield(7, 2, 1, -3);
-            profession = profession.farmer;
-            tier = 2;
+            foreach (XmlElement xRes in xRoot)
+            {
+                int id = int.Parse(xRes.Attributes.GetNamedItem("Id").Value);
+                string name = xRes.Attributes.GetNamedItem("Name").Value;
+                string spritePath = xRes.Attributes.GetNamedItem("SpritePath").Value;
+                BaseYield yield = new BaseYield(xRes.Attributes.GetNamedItem("BaseYield").Value);
+                int tier = int.Parse(xRes.Attributes.GetNamedItem("Tier").Value);
+                int prof = int.Parse(xRes.Attributes.GetNamedItem("Profession").Value);
+                Buildings.Add(new Building(id, name, spritePath, yield, tier, (profession)prof));
+            }
+            Buildings.Sort();
         }
-        else if (resource == bonusResources.cattle)
-        {
-            name = "Livestock farm";
-            //sprite = 
-            basicYield = new BaseYield(8, 1, 1, -3);
-            profession = profession.farmer;
-            tier = 2;
-        }
-        else if (resource == bonusResources.bananas)
-        {
-            name = "Banana plantation";
-            //sprite = 
-            basicYield = new BaseYield(8, 1, 1, -1);
-            profession = profession.farmer;
-            tier = 2;
-        }
-        else if (resource == bonusResources.camel)
-        {
-            name = "Camel camp";
-            //sprite = 
-            basicYield = new BaseYield(7, 3, 2, -4);
-            profession = profession.farmer;
-            tier = 2;
-        }
-        else if (resource == bonusResources.crabs)
-        {
-            name = "Crabs farm";
-            //sprite = 
-            basicYield = new BaseYield(9, 1, 2, -3);
-            profession = profession.farmer;
-            tier = 2;
-        }
-
-        //food t3
-        else if (resource == bonusResources.mushrooms)
-        {
-            name = "Mushroom farm";
-            //sprite = 
-            basicYield = new BaseYield(12, 4, 4, -1);
-            profession = profession.farmer;
-            tier = 3;
-        }
-        else if (resource == bonusResources.wine)
-        {
-            name = "Wineyard";
-            //sprite = 
-            basicYield = new BaseYield(13, 2, 3, 10);
-            profession = profession.farmer;
-            tier = 3;
-        }
-        else if (resource == bonusResources.citrus)
-        {
-            name = "Citrus plantation";
-            //sprite = 
-            basicYield = new BaseYield(11, 4, 3, 8);
-            profession = profession.farmer;
-            tier = 3;
-        }
-        else if (resource == bonusResources.spices)
-        {
-            name = "Spices plantation";
-            //sprite = 
-            basicYield = new BaseYield(11, 2, 5, 9);
-            profession = profession.farmer;
-            tier = 3;
-        }
-        else if (resource == bonusResources.seaweed)
-        {
-            name = "Seaweed farm";
-            //sprite = 
-            basicYield = new BaseYield(13, 3, 4, -1);
-            profession = profession.farmer;
-            tier = 3;
-        }
-
-        //production t1
-        else if (resource == bonusResources.stone)
-        {
-            name = "Stone quarry";
-            //sprite = 
-            basicYield = new BaseYield(0, 4, 1, -1);
-            profession = profession.worker;
-            tier = 1;
-        }
-        else if (resource == bonusResources.wine)
-        {
-            name = "Marble quarry";
-            //sprite = 
-            basicYield = new BaseYield(0, 3, 0, 2);
-            profession = profession.worker;
-            tier = 1;
-        }
-
-        //production t2
-        else if (resource == bonusResources.gypsum)
-        {
-            name = "Gypsum quarry";
-            //sprite = 
-            basicYield = new BaseYield(0, 9, 2, 1);
-            profession = profession.worker;
-            tier = 2;
-        }
-        else if (resource == bonusResources.copper)
-        {
-            name = "Copper mine";
-            //sprite = 
-            basicYield = new BaseYield(0, 10, 1, 2);
-            profession = profession.worker;
-            tier = 2;
-        }
-        else if (resource == bonusResources.reefs)
-        {
-            name = "Underwater resources collectors guild";
-            //sprite = 
-            basicYield = new BaseYield(2, 7, 2, 2);
-            profession = profession.worker;
-            tier = 2;
-        }
-
-        //production t3
-        else if (resource == bonusResources.ironwood)
-        {
-            name = "Ironwood sawmill";
-            //sprite = 
-            basicYield = new BaseYield(1, 17, 2, 4);
-            profession = profession.worker;
-            tier = 3;
-        }
-        else if (resource == bonusResources.lead)
-        {
-            name = "Lead mine";
-            //sprite = 
-            basicYield = new BaseYield(0, 15, 4, 5);
-            profession = profession.worker;
-            tier = 3;
-        }
-        else if (resource == bonusResources.corals)
-        {
-            name = "Coral collectors guild";
-            //sprite = 
-            basicYield = new BaseYield(3, 14, 3, 3);
-            profession = profession.worker;
-            tier = 3;
-        }
-
-        productionCost = (int)prodCosts.tier1;
-        workingPlaces = tier;
-        workingCitizens = new List<Citizen>(workingPlaces);
     }
+
+    public static bool operator ==(Building a, Building b) => a.id == b.id;
+    public static bool operator !=(Building a, Building b) => a.id != b.id;
+    public static bool operator >(Building a, Building b) => a.id > b.id;
+    public static bool operator <(Building a, Building b) => a.id < b.id;
+    public static bool operator >=(Building a, Building b) => a.id >= b.id;
+    public static bool operator <=(Building a, Building b) => a.id <= b.id;
 }

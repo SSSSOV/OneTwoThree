@@ -83,6 +83,7 @@ public class gameTile
     public bool Collidable;
 
     public bool FloodFilled;
+    public Resource resource { get; set; }
     public gameTile()
     {
         terrainType = terrain.None;

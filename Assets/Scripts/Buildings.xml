@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<buildings>
+	<Row Id = "1" Name="Berries Farm" SpritePath="berries_farm.png" BaseYield="3,0,1,-1" Tier="1" Profession="1"/>
+	<Row Id = "2" Name="Wheat Farm" SpritePath="wheat_farm.png" BaseYield="3,1,0,-1" Tier="1" Profession="1"/>
+	<Row Id = "3" Name="Rice Fields" SpritePath="rice_farm.png" BaseYield="3,1,0,-1" Tier="1" Profession="1"/>
+</buildings>

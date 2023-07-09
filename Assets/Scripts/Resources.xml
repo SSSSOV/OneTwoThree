@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<resources>
+	<Row Id = "1" Name="Berries" SpritePath="Berries.png" Strategic="false" Terrain="4,6,7" Climate="2,3,4"/>
+	<Row Id = "2" Name="Wheat" SpritePath="Wheat.png" Strategic="false" Terrain="4" Climate="3"/>
+	<Row Id = "3" Name="Rice" SpritePath="Rice.png" Strategic="false" Terrain="4,6" Climate="4"/>
+</resources>
