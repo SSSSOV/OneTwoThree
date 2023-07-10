@@ -82,6 +82,8 @@ public class gameTile
 
     public bool Collidable;
     public Resource resource { get; set; }
+
+    public City occupiedBy = null;
     public gameTile()
     {
         terrainType = terrain.None;

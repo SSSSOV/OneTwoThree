@@ -50,7 +50,7 @@ static class gameColors {
 }
 
 public class generation : MonoBehaviour {
-    private gameTile[,] gameMap;
+    public static gameTile[,] gameMap;
 
     Tilemap colorMap = null;
     public float[,] noiseMap = null;

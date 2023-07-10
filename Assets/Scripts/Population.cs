@@ -8,7 +8,7 @@ public class Population
     public int amount;
     public int foodAmount;
     public int happiness;
-    BaseYield populationYield;
+    public BaseYield populationYield;
 
     public Population(int citizenAmount) {
         foodAmount = 0;

@@ -6,16 +6,20 @@ public class Infrastructure
 {
     public List<Building> completedBuildings;
     public List<Building> allowedBuildings;
-    BaseYield buildingsYield;
-    int production;
-    int constructing;
+    public BaseYield buildingsYield;
+    public int production;
+    public int constructing;
 
-    public Infrastructure(List<Building> completed, List<Building> allowed) {
+    public Infrastructure(List<int> completedIds, List<int> allowedIds) {
         completedBuildings = new List<Building>();
         allowedBuildings = new List<Building>();
         buildingsYield = new BaseYield();
-        completedBuildings.AddRange(completed);
-        allowedBuildings.AddRange(allowed);
+        foreach (Building build in Building.Buildings)
+        {
+            if (completedIds.Contains(build.id)) completedBuildings.Add(build);
+            else if (allowedIds.Contains(build.id)) allowedBuildings.Add(build);
+        }
+        
         foreach (Building building in completedBuildings)
         {
             buildingsYield += building.basicYield;

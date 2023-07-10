@@ -44,4 +44,14 @@ public class BaseYield
     }
     public static BaseYield operator -(BaseYield a) => new BaseYield(-a.food, -a.production, -a.science, -a.gold);
     public static BaseYield operator -(BaseYield a, BaseYield b) => a + (-b);
+
+    public static BaseYield operator *(BaseYield a, float b)
+    {
+        return new BaseYield(
+                Mathf.FloorToInt((float)a.food * b),
+                Mathf.FloorToInt((float)a.production * b),
+                Mathf.FloorToInt((float)a.science * b),
+                Mathf.FloorToInt((float)a.gold * b)
+            );
+    }
 }
