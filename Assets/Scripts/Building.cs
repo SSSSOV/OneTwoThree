@@ -49,27 +49,6 @@ public class Building
         this.workingPlaces = tier;
         this.profession = profession;
     }
-    static Building()
-    {
-        XmlDocument xDoc = new XmlDocument();
-        xDoc.Load("Buildings.xml");
-        XmlElement xRoot = xDoc.DocumentElement;
-
-        if (xRoot != null)
-        {
-            foreach (XmlElement xRes in xRoot)
-            {
-                int id = int.Parse(xRes.Attributes.GetNamedItem("Id").Value);
-                string name = xRes.Attributes.GetNamedItem("Name").Value;
-                string spritePath = xRes.Attributes.GetNamedItem("SpritePath").Value;
-                BaseYield yield = new BaseYield(xRes.Attributes.GetNamedItem("BaseYield").Value);
-                int tier = int.Parse(xRes.Attributes.GetNamedItem("Tier").Value);
-                int prof = int.Parse(xRes.Attributes.GetNamedItem("Profession").Value);
-                Buildings.Add(new Building(id, name, spritePath, yield, tier, (profession)prof));
-            }
-            Buildings.Sort();
-        }
-    }
     static Building getBuilding(string name)
     {
         foreach (Building building in Buildings)

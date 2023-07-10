@@ -22,7 +22,6 @@ public class Population
         }
         updateHappiness();
     }
-
     public bool Update(int foodIncome)
     {
         int thresold = citizens.Count * 10;
@@ -80,6 +79,4 @@ public class Population
             happiness += pop.happiness;
         happiness = happiness / amount;
     }
-
-
 }
