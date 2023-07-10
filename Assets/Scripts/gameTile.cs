@@ -81,8 +81,6 @@ public class gameTile
     public int RiverSize { get; set; }
 
     public bool Collidable;
-
-    public bool FloodFilled;
     public Resource resource { get; set; }
     public gameTile()
     {

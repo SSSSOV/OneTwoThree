@@ -49,7 +49,6 @@ public class Building
         this.workingPlaces = tier;
         this.profession = profession;
     }
-
     static Building()
     {
         XmlDocument xDoc = new XmlDocument();
@@ -71,7 +70,22 @@ public class Building
             Buildings.Sort();
         }
     }
-
+    static Building getBuilding(string name)
+    {
+        foreach (Building building in Buildings)
+        {
+            if (building.name.Equals(name)) return building;
+        }
+        return null;
+    }
+    static Building getBuilding(int id)
+    {
+        foreach (Building building in Buildings)
+        {
+            if (building.id == id) return building;
+        }
+        return null;
+    }
     public static bool operator ==(Building a, Building b) => a.id == b.id;
     public static bool operator !=(Building a, Building b) => a.id != b.id;
     public static bool operator >(Building a, Building b) => a.id > b.id;
